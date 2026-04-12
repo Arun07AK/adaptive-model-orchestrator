@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Model Orchestrator — Benchmark Results</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #334155;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --teal: #2dd4bf;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --green: #4ade80;
+    --blue: #60a5fa;
+    --purple: #a78bfa;
+    --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem;
+  }
+  h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+  .subtitle { color: var(--text-dim); margin-bottom: 2rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    border: 1px solid var(--surface2);
+  }
+  .card h2 { font-size: 1.1rem; margin-bottom: 1rem; color: var(--teal); }
+  .bar-row { display: flex; align-items: center; margin-bottom: 0.5rem; }
+  .bar-label { width: 120px; font-size: 0.85rem; color: var(--text-dim); }
+  .bar-track { flex: 1; height: 24px; background: var(--surface2); border-radius: 4px; overflow: hidden; position: relative; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+  .bar-value { position: absolute; right: 8px; top: 2px; font-size: 0.8rem; font-weight: 600; }
+  .config-single .bar-fill { background: var(--text-dim); }
+  .config-orchestrated .bar-fill { background: var(--teal); }
+  .config-escalation .bar-fill { background: var(--yellow); }
+  .legend { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+  .upload-zone {
+    border: 2px dashed var(--surface2);
+    border-radius: var(--radius);
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .upload-zone:hover { border-color: var(--teal); }
+  .upload-zone input { display: none; }
+  #results-container { display: none; }
+  .narrative {
+    background: var(--surface);
+    border-left: 4px solid var(--teal);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+  <h1>Model Orchestrator — Benchmark Results</h1>
+  <p class="subtitle">Same cost. Smarter routing. Better results.</p>
+
+  <div id="upload-section">
+    <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+      <input type="file" id="file-input" accept=".json" multiple>
+      <p>Drop benchmark result JSON files here or click to upload</p>
+      <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 0.5rem;">
+        Upload files from data/results/ (single_*.json, orchestrated_*.json, escalation_*.json)
+      </p>
+    </div>
+  </div>
+
+  <div id="results-container">
+    <div class="narrative" id="narrative"></div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--text-dim)"></div>Single Model (Qwen 2.5 7B)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--teal)"></div>Orchestrated (Smart Routing)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>Orchestrated + Escalation</div>
+    </div>
+    <div class="grid" id="charts-grid"></div>
+  </div>
+
+<script>
+const state = { single: null, orchestrated: null, escalation: null };
+const BENCHMARKS = ['mmlu', 'gsm8k', 'math', 'humaneval', 'arc_challenge'];
+
+document.getElementById('file-input').addEventListener('change', (e) => {
+  for (const file of e.target.files) {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const data = JSON.parse(ev.target.result);
+      const name = file.name.toLowerCase();
+      if (name.includes('single')) state.single = data;
+      else if (name.includes('escalation')) state.escalation = data;
+      else if (name.includes('orchestrated')) state.orchestrated = data;
+      renderIfReady();
+    };
+    reader.readAsText(file);
+  }
+});
+
+function renderIfReady() {
+  const loaded = Object.values(state).filter(Boolean).length;
+  if (loaded === 0) return;
+  document.getElementById('upload-section').style.display = 'none';
+  document.getElementById('results-container').style.display = 'block';
+  renderCharts();
+  renderNarrative();
+}
+
+function getAccuracy(config, benchmark) {
+  const data = state[config];
+  if (!data || !data[benchmark]) return 0;
+  const results = data[benchmark];
+  const key = Object.keys(results).find(k => k.includes('acc'));
+  return key ? (results[key] * 100) : 0;
+}
+
+function renderCharts() {
+  const grid = document.getElementById('charts-grid');
+  grid.innerHTML = '';
+  for (const bench of BENCHMARKS) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = '<h2>' + bench.toUpperCase() + '</h2><div class="bar-chart">'
+      + renderBar('Single Model', 'single', bench)
+      + renderBar('Orchestrated', 'orchestrated', bench)
+      + renderBar('+ Escalation', 'escalation', bench)
+      + '</div>';
+    grid.appendChild(card);
+  }
+}
+
+function renderBar(label, config, benchmark) {
+  const acc = getAccuracy(config, benchmark);
+  if (!state[config]) return '';
+  return '<div class="bar-row config-' + config + '">'
+    + '<span class="bar-label">' + label + '</span>'
+    + '<div class="bar-track">'
+    + '<div class="bar-fill" style="width:' + acc + '%"></div>'
+    + '<span class="bar-value">' + acc.toFixed(1) + '%</span>'
+    + '</div></div>';
+}
+
+function renderNarrative() {
+  const el = document.getElementById('narrative');
+  if (!state.single || !state.orchestrated) {
+    el.textContent = 'Upload more result files to see the comparison narrative.';
+    return;
+  }
+  const singleAvg = BENCHMARKS.reduce((s, b) => s + getAccuracy('single', b), 0) / BENCHMARKS.length;
+  const orchAvg = BENCHMARKS.reduce((s, b) => s + getAccuracy('orchestrated', b), 0) / BENCHMARKS.length;
+  const diff = orchAvg - singleAvg;
+  el.innerHTML = 'Smart routing achieved <strong>' + orchAvg.toFixed(1) + '%</strong> average accuracy vs <strong>'
+    + singleAvg.toFixed(1) + '%</strong> for the single model baseline — a <strong>+'
+    + diff.toFixed(1) + ' point</strong> improvement at zero additional cost.';
+}
+</script>
+</body>
+</html>
