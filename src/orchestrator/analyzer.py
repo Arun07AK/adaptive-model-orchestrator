@@ -6,18 +6,16 @@ from src.types import Complexity, Domain, TaskAnalysis
 
 _MATH_SUBJECTS = {
     "abstract_algebra", "college_mathematics", "elementary_mathematics",
-    "high_school_mathematics", "high_school_statistics", "formal_logic",
-    "college_chemistry", "college_physics", "high_school_physics",
-    "high_school_chemistry", "astronomy", "econometrics",
-    "electrical_engineering", "machine_learning",
+    "high_school_mathematics", "high_school_statistics",
+    "econometrics",
 }
 
 _CODE_SUBJECTS = {
-    "college_computer_science", "computer_security", "high_school_computer_science",
+    "college_computer_science", "high_school_computer_science",
 }
 
 _REASONING_SUBJECTS = {
-    "logical_fallacies", "philosophy", "moral_disputes", "moral_scenarios",
+    "logical_fallacies", "formal_logic", "moral_disputes", "moral_scenarios",
 }
 
 _MATH_PATTERNS = re.compile(

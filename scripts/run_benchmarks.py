@@ -36,13 +36,13 @@ def _make_executor() -> Executor:
     backends: dict = {}
 
     try:
-        from src.models.mlx_backend import MLXBackend  # type: ignore
+        from src.models.local import MLXBackend
         backends["mlx"] = MLXBackend()
     except Exception:
         pass
 
     try:
-        from src.models.litellm_backend import LiteLLMBackend  # type: ignore
+        from src.models.api import LiteLLMBackend
         backends["groq"] = LiteLLMBackend()
         backends["together"] = LiteLLMBackend()
     except Exception:

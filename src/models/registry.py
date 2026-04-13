@@ -14,12 +14,12 @@ _DEFAULT_MODELS: list[ModelConfig] = [
         ram_gb=5.0,
     ),
     ModelConfig(
-        name="deepseek-r1-distill-qwen-32b",
+        name="qwen3-32b",
         provider="groq",
         domain=Domain.MATH,
         size_b=32.0,
         cost_tier=CostTier.FREE_API,
-        model_id="deepseek-r1-distill-qwen-32b",
+        model_id="qwen/qwen3-32b",
     ),
     ModelConfig(
         name="deepseek-coder-v2-16b",
@@ -31,12 +31,12 @@ _DEFAULT_MODELS: list[ModelConfig] = [
         ram_gb=10.0,
     ),
     ModelConfig(
-        name="qwen2.5-coder-32b",
+        name="llama-4-scout-17b",
         provider="groq",
         domain=Domain.CODE,
-        size_b=32.0,
+        size_b=17.0,
         cost_tier=CostTier.FREE_API,
-        model_id="qwen-2.5-coder-32b",
+        model_id="meta-llama/llama-4-scout-17b-16e-instruct",
     ),
     ModelConfig(
         name="qwen2.5-7b",

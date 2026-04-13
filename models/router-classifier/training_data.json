@@ -1,0 +1,226 @@
+[
+  {
+    "text": "Subject: abstract algebra",
+    "label": "math"
+  },
+  {
+    "text": "Subject: college chemistry",
+    "label": "math"
+  },
+  {
+    "text": "Subject: college mathematics",
+    "label": "math"
+  },
+  {
+    "text": "Subject: electrical engineering",
+    "label": "math"
+  },
+  {
+    "text": "Subject: high school physics",
+    "label": "math"
+  },
+  {
+    "text": "Subject: astronomy",
+    "label": "math"
+  },
+  {
+    "text": "Subject: econometrics",
+    "label": "math"
+  },
+  {
+    "text": "Subject: college physics",
+    "label": "math"
+  },
+  {
+    "text": "Subject: high school statistics",
+    "label": "math"
+  },
+  {
+    "text": "Subject: elementary mathematics",
+    "label": "math"
+  },
+  {
+    "text": "Subject: high school mathematics",
+    "label": "math"
+  },
+  {
+    "text": "Subject: machine learning",
+    "label": "math"
+  },
+  {
+    "text": "Subject: high school chemistry",
+    "label": "math"
+  },
+  {
+    "text": "Subject: formal logic",
+    "label": "math"
+  },
+  {
+    "text": "Subject: computer security",
+    "label": "code"
+  },
+  {
+    "text": "Subject: college computer science",
+    "label": "code"
+  },
+  {
+    "text": "Subject: high school computer science",
+    "label": "code"
+  },
+  {
+    "text": "Subject: logical fallacies",
+    "label": "reasoning"
+  },
+  {
+    "text": "Subject: moral disputes",
+    "label": "reasoning"
+  },
+  {
+    "text": "Subject: moral scenarios",
+    "label": "reasoning"
+  },
+  {
+    "text": "Subject: philosophy",
+    "label": "reasoning"
+  },
+  {
+    "text": "Subject: anatomy",
+    "label": "general"
+  },
+  {
+    "text": "Subject: business ethics",
+    "label": "general"
+  },
+  {
+    "text": "Subject: clinical knowledge",
+    "label": "general"
+  },
+  {
+    "text": "Subject: college biology",
+    "label": "general"
+  },
+  {
+    "text": "Subject: college medicine",
+    "label": "general"
+  },
+  {
+    "text": "Subject: conceptual physics",
+    "label": "general"
+  },
+  {
+    "text": "Subject: global facts",
+    "label": "general"
+  },
+  {
+    "text": "Subject: high school biology",
+    "label": "general"
+  },
+  {
+    "text": "Subject: high school geography",
+    "label": "general"
+  },
+  {
+    "text": "Subject: high school government and politics",
+    "label": "general"
+  },
+  {
+    "text": "Subject: high school macroeconomics",
+    "label": "general"
+  },
+  {
+    "text": "Subject: high school microeconomics",
+    "label": "general"
+  },
+  {
+    "text": "Subject: high school psychology",
+    "label": "general"
+  },
+  {
+    "text": "Subject: high school us history",
+    "label": "general"
+  },
+  {
+    "text": "Subject: high school world history",
+    "label": "general"
+  },
+  {
+    "text": "Subject: human aging",
+    "label": "general"
+  },
+  {
+    "text": "Subject: human sexuality",
+    "label": "general"
+  },
+  {
+    "text": "Subject: international law",
+    "label": "general"
+  },
+  {
+    "text": "Subject: jurisprudence",
+    "label": "general"
+  },
+  {
+    "text": "Subject: management",
+    "label": "general"
+  },
+  {
+    "text": "Subject: marketing",
+    "label": "general"
+  },
+  {
+    "text": "Subject: medical genetics",
+    "label": "general"
+  },
+  {
+    "text": "Subject: miscellaneous",
+    "label": "general"
+  },
+  {
+    "text": "Subject: nutrition",
+    "label": "general"
+  },
+  {
+    "text": "Subject: prehistory",
+    "label": "general"
+  },
+  {
+    "text": "Subject: professional accounting",
+    "label": "general"
+  },
+  {
+    "text": "Subject: professional law",
+    "label": "general"
+  },
+  {
+    "text": "Subject: professional medicine",
+    "label": "general"
+  },
+  {
+    "text": "Subject: professional psychology",
+    "label": "general"
+  },
+  {
+    "text": "Subject: public relations",
+    "label": "general"
+  },
+  {
+    "text": "Subject: security studies",
+    "label": "general"
+  },
+  {
+    "text": "Subject: sociology",
+    "label": "general"
+  },
+  {
+    "text": "Subject: us foreign policy",
+    "label": "general"
+  },
+  {
+    "text": "Subject: virology",
+    "label": "general"
+  },
+  {
+    "text": "Subject: world religions",
+    "label": "general"
+  }
+]
