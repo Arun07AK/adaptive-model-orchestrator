@@ -4,15 +4,7 @@ from src.types import CostTier, Domain, ModelConfig
 
 
 _DEFAULT_MODELS: list[ModelConfig] = [
-    ModelConfig(
-        name="deepseek-r1-distill-qwen-7b",
-        provider="mlx",
-        domain=Domain.MATH,
-        size_b=7.0,
-        cost_tier=CostTier.LOCAL,
-        model_id="mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit",
-        ram_gb=5.0,
-    ),
+    # --- Math specialist (Groq free tier, genuinely stronger than 7B) ---
     ModelConfig(
         name="qwen3-32b",
         provider="groq",
@@ -21,15 +13,7 @@ _DEFAULT_MODELS: list[ModelConfig] = [
         cost_tier=CostTier.FREE_API,
         model_id="qwen/qwen3-32b",
     ),
-    ModelConfig(
-        name="deepseek-coder-v2-16b",
-        provider="mlx",
-        domain=Domain.CODE,
-        size_b=16.0,
-        cost_tier=CostTier.LOCAL,
-        model_id="mlx-community/DeepSeek-Coder-V2-Lite-Instruct-4bit",
-        ram_gb=10.0,
-    ),
+    # --- Code specialist (Groq free tier) ---
     ModelConfig(
         name="llama-4-scout-17b",
         provider="groq",

@@ -12,7 +12,6 @@ def test_registry_has_all_domains():
 def test_get_cheapest_for_domain():
     registry = ModelRegistry()
     model = registry.get_cheapest(Domain.MATH)
-    assert model.cost_tier == CostTier.LOCAL
     assert model.domain == Domain.MATH
 
 
@@ -31,7 +30,7 @@ def test_get_escalation_model():
 
 def test_get_model_by_name():
     registry = ModelRegistry()
-    model = registry.get_by_name("deepseek-r1-distill-qwen-7b")
+    model = registry.get_by_name("qwen3-32b")
     assert model is not None
     assert model.domain == Domain.MATH
 

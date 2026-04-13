@@ -3,7 +3,7 @@ from __future__ import annotations
 from src.models.registry import ModelRegistry
 from src.types import RoutingDecision, TaskAnalysis
 
-_LOW_CONFIDENCE_THRESHOLD = 0.5
+_LOW_CONFIDENCE_THRESHOLD = 0.7
 
 
 class Router:

@@ -28,7 +28,7 @@ _MATH_PATTERNS = re.compile(
 )
 
 _CODE_PATTERNS = re.compile(
-    r"\b(function|def |class |import |return |variable|algorithm|"
+    r"\b(function|def |class |import |return |variable|"
     r"implement|code|program|python|java|javascript|array|list|"
     r"linked.list|binary.tree|hash.map|stack|queue|loop|recursion|"
     r"compile|runtime|syntax|API|database|SQL|git|debug)\b",
@@ -70,7 +70,8 @@ class TaskAnalyzer:
                 return Domain.CODE, 0.95
             if subject in _REASONING_SUBJECTS:
                 return Domain.REASONING, 0.90
-            return Domain.GENERAL, 0.85
+            # Explicitly general benchmarks
+            return Domain.GENERAL, 0.95
 
         math_hits = len(_MATH_PATTERNS.findall(text))
         code_hits = len(_CODE_PATTERNS.findall(text))

@@ -13,7 +13,6 @@ def test_route_math_to_math_model(router):
     analysis = TaskAnalysis(text="Solve x^2 = 4", domain=Domain.MATH, complexity=Complexity.SIMPLE, confidence=0.9)
     decision = router.route(analysis)
     assert decision.model.domain == Domain.MATH
-    assert decision.model.cost_tier == CostTier.LOCAL
 
 
 def test_route_code_to_code_model(router):
@@ -29,7 +28,7 @@ def test_route_general_to_general_model(router):
 
 
 def test_route_prefers_cheapest_model(router):
-    analysis = TaskAnalysis(text="What is 2+2?", domain=Domain.MATH, complexity=Complexity.SIMPLE, confidence=0.95)
+    analysis = TaskAnalysis(text="What is 2+2?", domain=Domain.GENERAL, complexity=Complexity.SIMPLE, confidence=0.95)
     decision = router.route(analysis)
     assert decision.model.cost_tier == CostTier.LOCAL
 

@@ -161,7 +161,26 @@ async def run_mmlu(pipeline: OrchestratorPipeline, limit_per_subject: int = 5) -
 # --- GSM8K ---
 
 def extract_number(text: str) -> str | None:
-    """Extract the final number from a GSM8K answer."""
+    """Extract the final number from a GSM8K answer.
+
+    Handles chain-of-thought models that output <think>...</think> before the answer.
+    Looks for the answer after </think> first, then falls back to last number in text.
+    """
+    # If there's a </think> tag, prioritize content after it
+    if "</think>" in text:
+        after_think = text.split("</think>")[-1]
+        numbers = re.findall(r'-?\d+(?:,\d{3})*(?:\.\d+)?', after_think.replace(",", ""))
+        if numbers:
+            return numbers[-1]
+
+    # Look for boxed answers: \boxed{72}
+    boxed = re.findall(r'\\boxed\{([^}]+)\}', text)
+    if boxed:
+        nums = re.findall(r'-?\d+(?:\.\d+)?', boxed[-1].replace(",", ""))
+        if nums:
+            return nums[-1]
+
+    # Fall back to last number in the full text
     numbers = re.findall(r'-?\d+(?:,\d{3})*(?:\.\d+)?', text.replace(",", ""))
     return numbers[-1] if numbers else None
 
@@ -179,7 +198,7 @@ async def run_gsm8k(pipeline: OrchestratorPipeline, limit: int = 30) -> dict:
         prompt = f"Solve this math problem. Give your final answer as a number.\n\n{item['question']}\n\nAnswer:"
         expected = extract_number(item["answer"].split("####")[-1].strip())
 
-        result = await pipeline.run(prompt, max_tokens=200)
+        result = await pipeline.run(prompt, subject_hint="elementary_mathematics", max_tokens=512)
 
         predicted = extract_number(result.text)
         is_correct = predicted is not None and expected is not None and predicted == expected
@@ -226,7 +245,7 @@ async def run_arc(pipeline: OrchestratorPipeline, limit: int = 30) -> dict:
 
         expected = item["answerKey"]
 
-        result = await pipeline.run(prompt, max_tokens=100)
+        result = await pipeline.run(prompt, subject_hint="arc_challenge", max_tokens=100)
 
         predicted = extract_answer(result.text)
         is_correct = predicted == expected
