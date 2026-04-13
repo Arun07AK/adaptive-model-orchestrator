@@ -37,11 +37,22 @@ from src.types import Domain, RoutingDecision, TaskAnalysis
 # --- Pipeline builders ---
 
 class SingleModelRouter(Router):
+    """Baseline: everything through local Qwen 2.5 7B."""
     def route(self, analysis: TaskAnalysis, prefer_stronger: bool = False) -> RoutingDecision:
         model = self._registry.get_by_name("qwen2.5-7b")
         if model is None:
             model = self._registry.get_cheapest(Domain.GENERAL)
         return RoutingDecision(model=model, reason="single-model baseline")
+
+
+class StrongestRouter(Router):
+    """Orchestrated: always route to the strongest model per domain."""
+    def route(self, analysis: TaskAnalysis, prefer_stronger: bool = False) -> RoutingDecision:
+        model = self._registry.get_strongest(analysis.domain)
+        return RoutingDecision(
+            model=model,
+            reason=f"orchestrated: strongest {analysis.domain.value} → {model.name}",
+        )
 
 
 def build_pipeline(config: str) -> OrchestratorPipeline:
@@ -55,10 +66,10 @@ def build_pipeline(config: str) -> OrchestratorPipeline:
         router = SingleModelRouter(registry=registry)
         enable_esc = False
     elif config == "orchestrated":
-        router = Router(registry=registry)
+        router = StrongestRouter(registry=registry)
         enable_esc = False
     elif config == "escalation":
-        router = Router(registry=registry)
+        router = StrongestRouter(registry=registry)
         enable_esc = True
     else:
         raise ValueError(f"Unknown config: {config}")
@@ -95,16 +106,18 @@ def format_mmlu_prompt(item: dict) -> str:
 
 
 def extract_answer(text: str) -> str | None:
-    text = text.strip().upper()
+    # Strip <think>...</think> blocks from CoT models (Qwen3)
+    text = re.sub(r'<think>[\s\S]*?</think>', '', text).strip()
+    text = text.upper()
     # Try to find A, B, C, or D at the start
     match = re.match(r'^([A-D])', text)
     if match:
         return match.group(1)
-    # Check for "answer is X" or "answer: X" patterns (chain-of-thought models)
+    # Check for "answer is X" or "answer: X" patterns
     answer_match = re.search(r'(?:ANSWER|ANSWER IS|ANSWER:)\s*([A-D])', text)
     if answer_match:
         return answer_match.group(1)
-    # Try the last single letter A-D in the text (CoT models put answer at end)
+    # Try the last single letter A-D in the text
     last_match = re.findall(r'\b([A-D])\b', text)
     if last_match:
         return last_match[-1]
@@ -163,25 +176,37 @@ async def run_mmlu(pipeline: OrchestratorPipeline, limit_per_subject: int = 5) -
 def extract_number(text: str) -> str | None:
     """Extract the final number from a GSM8K answer.
 
-    Handles chain-of-thought models that output <think>...</think> before the answer.
-    Looks for the answer after </think> first, then falls back to last number in text.
+    Priority: #### format > </think> content > \\boxed{} > "answer is" > last number.
     """
-    # If there's a </think> tag, prioritize content after it
+    # Strip <think> block to get clean answer
+    clean = re.sub(r'<think>[\s\S]*?</think>', '', text).strip()
+
+    # Look for #### number (standard GSM8K format)
+    hash_match = re.findall(r'####\s*(-?\d+(?:,\d{3})*(?:\.\d+)?)', clean.replace(",", ""))
+    if hash_match:
+        return hash_match[-1]
+
+    # Look for "the answer is X" pattern
+    answer_match = re.search(r'(?:the answer is|answer is|answer:)\s*(-?\d+(?:,\d{3})*(?:\.\d+)?)', clean, re.IGNORECASE)
+    if answer_match:
+        return answer_match.group(1).replace(",", "")
+
+    # Look for boxed answers: \boxed{72}
+    boxed = re.findall(r'\\boxed\{([^}]+)\}', clean)
+    if boxed:
+        nums = re.findall(r'-?\d+(?:\.\d+)?', boxed[-1].replace(",", ""))
+        if nums:
+            return nums[-1]
+
+    # If there's content after </think>, prefer numbers from there
     if "</think>" in text:
         after_think = text.split("</think>")[-1]
         numbers = re.findall(r'-?\d+(?:,\d{3})*(?:\.\d+)?', after_think.replace(",", ""))
         if numbers:
             return numbers[-1]
 
-    # Look for boxed answers: \boxed{72}
-    boxed = re.findall(r'\\boxed\{([^}]+)\}', text)
-    if boxed:
-        nums = re.findall(r'-?\d+(?:\.\d+)?', boxed[-1].replace(",", ""))
-        if nums:
-            return nums[-1]
-
-    # Fall back to last number in the full text
-    numbers = re.findall(r'-?\d+(?:,\d{3})*(?:\.\d+)?', text.replace(",", ""))
+    # Fall back to last number in clean text
+    numbers = re.findall(r'-?\d+(?:,\d{3})*(?:\.\d+)?', clean.replace(",", ""))
     return numbers[-1] if numbers else None
 
 
@@ -195,10 +220,15 @@ async def run_gsm8k(pipeline: OrchestratorPipeline, limit: int = 30) -> dict:
     total_latency = 0.0
 
     for item in items:
-        prompt = f"Solve this math problem. Give your final answer as a number.\n\n{item['question']}\n\nAnswer:"
+        prompt = (
+            "Solve this math problem step by step. "
+            "After your reasoning, write the final answer as a single number "
+            "in the format: #### [number]\n\n"
+            f"{item['question']}"
+        )
         expected = extract_number(item["answer"].split("####")[-1].strip())
 
-        result = await pipeline.run(prompt, subject_hint="elementary_mathematics", max_tokens=512)
+        result = await pipeline.run(prompt, subject_hint="elementary_mathematics", max_tokens=1024)
 
         predicted = extract_number(result.text)
         is_correct = predicted is not None and expected is not None and predicted == expected
