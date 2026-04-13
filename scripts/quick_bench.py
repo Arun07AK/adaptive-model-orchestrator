@@ -31,6 +31,7 @@ from src.orchestrator.executor import Executor
 from src.orchestrator.escalation import EscalationStrategy
 from src.orchestrator.aggregator import Aggregator
 from src.orchestrator.pipeline import OrchestratorPipeline
+from src.orchestrator.moa import MixtureOfAgents
 from src.types import Domain, RoutingDecision, TaskAnalysis
 
 
@@ -84,6 +85,29 @@ def build_pipeline(config: str) -> OrchestratorPipeline:
     )
 
 
+def build_moa() -> MixtureOfAgents:
+    api_backend = LiteLLMBackend()
+    registry = ModelRegistry()
+    executor = Executor(backends={"groq": api_backend})
+
+    proposer_models = [
+        registry.get_by_name("qwen3-32b"),
+        registry.get_by_name("llama-3.3-70b"),
+        registry.get_by_name("llama-4-scout-17b"),
+        registry.get_by_name("llama-3.1-8b"),
+    ]
+    # Filter out None in case a model isn't in registry
+    proposer_models = [m for m in proposer_models if m is not None]
+
+    aggregator = registry.get_by_name("llama-3.3-70b")
+
+    return MixtureOfAgents(
+        executor=executor,
+        proposer_models=proposer_models,
+        aggregator_model=aggregator,
+    )
+
+
 # --- MMLU ---
 
 MMLU_SUBJECTS = [
@@ -124,7 +148,7 @@ def extract_answer(text: str) -> str | None:
     return None
 
 
-async def run_mmlu(pipeline: OrchestratorPipeline, limit_per_subject: int = 5) -> dict:
+async def run_mmlu(pipeline: OrchestratorPipeline | MixtureOfAgents, limit_per_subject: int = 5) -> dict:
     correct = 0
     total = 0
     models_used: dict[str, int] = {}
@@ -210,7 +234,7 @@ def extract_number(text: str) -> str | None:
     return numbers[-1] if numbers else None
 
 
-async def run_gsm8k(pipeline: OrchestratorPipeline, limit: int = 30) -> dict:
+async def run_gsm8k(pipeline: OrchestratorPipeline | MixtureOfAgents, limit: int = 30) -> dict:
     ds = load_dataset("openai/gsm8k", "main", split="test", trust_remote_code=False)
     items = list(ds)[:limit]
 
@@ -254,7 +278,7 @@ async def run_gsm8k(pipeline: OrchestratorPipeline, limit: int = 30) -> dict:
 
 # --- ARC ---
 
-async def run_arc(pipeline: OrchestratorPipeline, limit: int = 30) -> dict:
+async def run_arc(pipeline: OrchestratorPipeline | MixtureOfAgents, limit: int = 30) -> dict:
     ds = load_dataset("allenai/ai2_arc", "ARC-Challenge", split="test", trust_remote_code=False)
     items = list(ds)[:limit]
 
@@ -306,12 +330,15 @@ async def run_all_benchmarks(config: str) -> dict:
     print(f"Config: {config}")
     print(f"{'='*60}")
 
-    pipeline = build_pipeline(config)
+    if config == "moa":
+        runner = build_moa()
+    else:
+        runner = build_pipeline(config)
 
     start = time.time()
-    mmlu = await run_mmlu(pipeline, limit_per_subject=5)
-    gsm8k = await run_gsm8k(pipeline, limit=30)
-    arc = await run_arc(pipeline, limit=30)
+    mmlu = await run_mmlu(runner, limit_per_subject=5)
+    gsm8k = await run_gsm8k(runner, limit=30)
+    arc = await run_arc(runner, limit=30)
     elapsed = time.time() - start
 
     results = {
@@ -336,11 +363,11 @@ async def run_all_benchmarks(config: str) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(description="Quick benchmark runner")
-    parser.add_argument("--config", choices=["single", "orchestrated", "escalation", "all"],
+    parser.add_argument("--config", choices=["single", "orchestrated", "moa", "all"],
                         required=True)
     args = parser.parse_args()
 
-    configs = ["single", "orchestrated"] if args.config == "all" else [args.config]
+    configs = ["single", "orchestrated", "moa"] if args.config == "all" else [args.config]
 
     all_results = {}
     for config in configs:
