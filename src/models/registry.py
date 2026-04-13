@@ -48,6 +48,14 @@ _DEFAULT_MODELS: list[ModelConfig] = [
         cost_tier=CostTier.FREE_API,
         model_id="llama-3.3-70b-versatile",
     ),
+    ModelConfig(
+        name="llama-3.1-8b",
+        provider="groq",
+        domain=Domain.GENERAL,
+        size_b=8.0,
+        cost_tier=CostTier.FREE_API,
+        model_id="llama-3.1-8b-instant",
+    ),
 ]
 
 _ESCALATION_MODEL_NAME = "llama-3.3-70b"
