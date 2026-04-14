@@ -32,6 +32,7 @@ from src.orchestrator.escalation import EscalationStrategy
 from src.orchestrator.aggregator import Aggregator
 from src.orchestrator.pipeline import OrchestratorPipeline
 from src.orchestrator.moa import MixtureOfAgents
+from src.orchestrator.cascade import SelectiveReviewPipeline, CascadePipeline
 from src.types import Domain, RoutingDecision, TaskAnalysis
 
 
@@ -114,6 +115,55 @@ def build_moa() -> MixtureOfAgents:
         executor=executor,
         proposer_models=proposer_models,
         aggregator_model=aggregator,
+    )
+
+
+def build_selective_review():
+    mlx_backend = MLXBackend()
+    api_backend = LiteLLMBackend()
+    registry = ModelRegistry()
+    executor = Executor(backends={
+        "mlx": mlx_backend, "groq": api_backend, "cerebras": api_backend, "together": api_backend,
+    })
+
+    def select_specialist(domain):
+        # Use cheap domain specialist (not strongest — that's the senior's role)
+        models = registry.get_models_for_domain(domain)
+        # Prefer Groq mid-size specialists
+        for m in models:
+            if m.provider == "groq" and 15 <= m.size_b <= 40:
+                return m
+        return min(models, key=lambda m: m.size_b)
+
+    return SelectiveReviewPipeline(
+        executor=executor,
+        specialist_selector=select_specialist,
+        senior_reviewer=registry.get_by_name("qwen3-235b"),
+        analyzer=TaskAnalyzer(),
+    )
+
+
+def build_cascade():
+    mlx_backend = MLXBackend()
+    api_backend = LiteLLMBackend()
+    registry = ModelRegistry()
+    executor = Executor(backends={
+        "mlx": mlx_backend, "groq": api_backend, "cerebras": api_backend, "together": api_backend,
+    })
+
+    def select_specialist(domain):
+        models = registry.get_models_for_domain(domain)
+        for m in models:
+            if m.provider == "groq" and 15 <= m.size_b <= 40:
+                return m
+        return min(models, key=lambda m: m.size_b)
+
+    return CascadePipeline(
+        executor=executor,
+        laborer=registry.get_by_name("llama-3.1-8b"),
+        specialist_selector=select_specialist,
+        senior_reviewer=registry.get_by_name("qwen3-235b"),
+        analyzer=TaskAnalyzer(),
     )
 
 
@@ -360,6 +410,16 @@ async def run_all_benchmarks(config: str) -> dict:
         mmlu = await run_mmlu(orchestrated, limit_per_subject=5)
         gsm8k = await run_gsm8k(moa, limit=30)
         arc = await run_arc(orchestrated, limit=30)
+    elif config == "selective_review":
+        runner = build_selective_review()
+        mmlu = await run_mmlu(runner, limit_per_subject=5)
+        gsm8k = await run_gsm8k(runner, limit=30)
+        arc = await run_arc(runner, limit=30)
+    elif config == "cascade":
+        runner = build_cascade()
+        mmlu = await run_mmlu(runner, limit_per_subject=5)
+        gsm8k = await run_gsm8k(runner, limit=30)
+        arc = await run_arc(runner, limit=30)
     else:
         if config == "moa":
             runner = build_moa()
@@ -388,16 +448,24 @@ async def run_all_benchmarks(config: str) -> dict:
               f"avg={bench['avg_latency_ms']:.0f}ms  models={bench['models_used']}")
     print(f"  Total time: {elapsed:.0f}s")
 
+    if config == "cascade" and "runner" in dir():
+        print(f"\nTier usage:")
+        print(f"  Laborer: {runner.laborer_count}/{runner.total_count}")
+        print(f"  Specialist: {runner.specialist_count}/{runner.total_count} ({100*runner.specialist_count/runner.total_count:.0f}%)")
+        print(f"  Senior: {runner.senior_count}/{runner.total_count} ({100*runner.senior_count/runner.total_count:.0f}%)")
+    elif config == "selective_review" and "runner" in dir():
+        print(f"\nReview rate: {runner.review_count}/{runner.total_count} ({100*runner.review_count/runner.total_count:.0f}%)")
+
     return results
 
 
 def main():
     parser = argparse.ArgumentParser(description="Quick benchmark runner")
-    parser.add_argument("--config", choices=["single", "orchestrated", "moa", "hybrid", "all"],
+    parser.add_argument("--config", choices=["single", "orchestrated", "moa", "hybrid", "selective_review", "cascade", "all"],
                         required=True)
     args = parser.parse_args()
 
-    configs = ["single", "orchestrated", "hybrid"] if args.config == "all" else [args.config]
+    configs = ["single", "selective_review", "cascade"] if args.config == "all" else [args.config]
 
     all_results = {}
     for config in configs:
