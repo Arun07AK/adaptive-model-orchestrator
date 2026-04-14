@@ -56,6 +56,23 @@ _DEFAULT_MODELS: list[ModelConfig] = [
         cost_tier=CostTier.FREE_API,
         model_id="llama-3.1-8b-instant",
     ),
+    # Cerebras free tier: 1M tokens/day, strong models
+    ModelConfig(
+        name="qwen3-235b",
+        provider="cerebras",
+        domain=Domain.GENERAL,
+        size_b=235.0,
+        cost_tier=CostTier.FREE_API,
+        model_id="qwen-3-235b-a22b-instruct-2507",
+    ),
+    ModelConfig(
+        name="gpt-oss-120b",
+        provider="cerebras",
+        domain=Domain.GENERAL,
+        size_b=120.0,
+        cost_tier=CostTier.FREE_API,
+        model_id="gpt-oss-120b",
+    ),
 ]
 
 _ESCALATION_MODEL_NAME = "llama-3.3-70b"

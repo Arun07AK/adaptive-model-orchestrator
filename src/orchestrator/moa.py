@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from src.orchestrator.executor import Executor
 from src.types import ExecutionResult, ModelConfig, OrchestratorResult
 
@@ -72,7 +73,8 @@ class MixtureOfAgents:
         self, original_prompt: str, proposals: list[ExecutionResult]
     ) -> str:
         refs = "\n\n".join(
-            f"{i+1}. {p.text}" for i, p in enumerate(proposals)
+            f"{i+1}. {re.sub(r'<think>[\\s\\S]*?</think>', '', p.text).strip()}"
+            for i, p in enumerate(proposals)
         )
         return (
             f"{_AGGREGATOR_SYSTEM_PROMPT}\n\n"

@@ -60,7 +60,12 @@ def build_pipeline(config: str) -> OrchestratorPipeline:
     mlx_backend = MLXBackend()
     api_backend = LiteLLMBackend()
     registry = ModelRegistry()
-    executor = Executor(backends={"mlx": mlx_backend, "groq": api_backend, "together": api_backend})
+    executor = Executor(backends={
+        "mlx": mlx_backend,
+        "groq": api_backend,
+        "cerebras": api_backend,
+        "together": api_backend,
+    })
     escalation = EscalationStrategy(executor=executor, registry=registry, threshold=0.6)
 
     if config == "single":
@@ -88,18 +93,22 @@ def build_pipeline(config: str) -> OrchestratorPipeline:
 def build_moa() -> MixtureOfAgents:
     api_backend = LiteLLMBackend()
     registry = ModelRegistry()
-    executor = Executor(backends={"groq": api_backend})
+    # Support all API providers
+    executor = Executor(backends={
+        "groq": api_backend,
+        "cerebras": api_backend,
+        "together": api_backend,
+    })
 
+    # Proposers: 2 diverse models from Groq (separate quota pools, no rate limit conflicts)
     proposer_models = [
         registry.get_by_name("qwen3-32b"),
-        registry.get_by_name("llama-3.3-70b"),
-        registry.get_by_name("llama-4-scout-17b"),
         registry.get_by_name("llama-3.1-8b"),
     ]
-    # Filter out None in case a model isn't in registry
     proposer_models = [m for m in proposer_models if m is not None]
 
-    aggregator = registry.get_by_name("llama-3.3-70b")
+    # Aggregator: Qwen3-235B via Cerebras — 235B >> proposers, massive diversity gap
+    aggregator = registry.get_by_name("qwen3-235b")
 
     return MixtureOfAgents(
         executor=executor,
@@ -132,16 +141,28 @@ def format_mmlu_prompt(item: dict) -> str:
 def extract_answer(text: str) -> str | None:
     # Strip <think>...</think> blocks from CoT models (Qwen3)
     text = re.sub(r'<think>[\s\S]*?</think>', '', text).strip()
+
+    # If the entire response is just a single letter, return it
+    stripped = text.strip().rstrip(".").rstrip(")").strip()
+    if len(stripped) == 1 and stripped.upper() in "ABCD":
+        return stripped.upper()
+
     text = text.upper()
-    # Try to find A, B, C, or D at the start
-    match = re.match(r'^([A-D])', text)
-    if match:
-        return match.group(1)
-    # Check for "answer is X" or "answer: X" patterns
-    answer_match = re.search(r'(?:ANSWER|ANSWER IS|ANSWER:)\s*([A-D])', text)
-    if answer_match:
-        return answer_match.group(1)
-    # Try the last single letter A-D in the text
+
+    # Most reliable: explicit answer statements
+    for pattern in [
+        r'(?:CORRECT ANSWER|FINAL ANSWER|THE ANSWER)\s*(?:IS|:)\s*\*?\*?([A-D])',
+        r'ANSWER\s*(?:IS|:)\s*\*?\*?([A-D])',
+        r'\*\*([A-D])\*\*',                     # markdown bold: **B**
+        r'(?:OPTION|CHOICE)\s*([A-D])\b',
+        r'^\s*\(?([A-D])[\.\)]',                # starts with "B." or "(B)"
+        r'^\s*([A-D])\s*$',                     # just the letter on its own line
+    ]:
+        match = re.search(pattern, text, re.MULTILINE)
+        if match:
+            return match.group(1)
+
+    # Last resort: last standalone letter
     last_match = re.findall(r'\b([A-D])\b', text)
     if last_match:
         return last_match[-1]
@@ -330,15 +351,24 @@ async def run_all_benchmarks(config: str) -> dict:
     print(f"Config: {config}")
     print(f"{'='*60}")
 
-    if config == "moa":
-        runner = build_moa()
-    else:
-        runner = build_pipeline(config)
-
     start = time.time()
-    mmlu = await run_mmlu(runner, limit_per_subject=5)
-    gsm8k = await run_gsm8k(runner, limit=30)
-    arc = await run_arc(runner, limit=30)
+
+    if config == "hybrid":
+        # Best-of-both: orchestrated routing for MCQ, MoA for open-ended math
+        orchestrated = build_pipeline("orchestrated")
+        moa = build_moa()
+        mmlu = await run_mmlu(orchestrated, limit_per_subject=5)
+        gsm8k = await run_gsm8k(moa, limit=30)
+        arc = await run_arc(orchestrated, limit=30)
+    else:
+        if config == "moa":
+            runner = build_moa()
+        else:
+            runner = build_pipeline(config)
+        mmlu = await run_mmlu(runner, limit_per_subject=5)
+        gsm8k = await run_gsm8k(runner, limit=30)
+        arc = await run_arc(runner, limit=30)
+
     elapsed = time.time() - start
 
     results = {
@@ -363,11 +393,11 @@ async def run_all_benchmarks(config: str) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(description="Quick benchmark runner")
-    parser.add_argument("--config", choices=["single", "orchestrated", "moa", "all"],
+    parser.add_argument("--config", choices=["single", "orchestrated", "moa", "hybrid", "all"],
                         required=True)
     args = parser.parse_args()
 
-    configs = ["single", "orchestrated", "moa"] if args.config == "all" else [args.config]
+    configs = ["single", "orchestrated", "hybrid"] if args.config == "all" else [args.config]
 
     all_results = {}
     for config in configs:

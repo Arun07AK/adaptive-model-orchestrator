@@ -10,12 +10,13 @@ try:
 except ImportError:
     acompletion = None
 
-_MAX_RETRIES = 5
+_MAX_RETRIES = 8
 
 
 _PROVIDER_PREFIX = {
     "groq": "groq",
     "together": "together_ai",
+    "cerebras": "cerebras",
 }
 
 
@@ -48,8 +49,20 @@ class LiteLLMBackend:
                 break
             except Exception as e:
                 err = str(e).lower()
-                if "rate" in err or "limit" in err or "429" in str(e) or "too many" in err:
-                    wait = 3 * (attempt + 1)  # 3s, 6s, 9s, 12s, 15s
+                is_retryable = (
+                    "rate" in err or "limit" in err or "429" in str(e)
+                    or "too many" in err
+                    or "503" in str(e) or "over capacity" in err
+                    or "service unavailable" in err or "internal_server_error" in err
+                    or "500" in str(e)
+                )
+                if is_retryable:
+                    # Longer waits for queue/high-traffic errors (Cerebras burst limits)
+                    is_queue = "queue" in err or "high traffic" in err
+                    if is_queue:
+                        wait = 15 * (attempt + 1)  # 15s, 30s, 45s, 60s, 75s, 90s, 105s, 120s
+                    else:
+                        wait = 3 * (attempt + 1)   # 3s, 6s, 9s, 12s, 15s
                     await asyncio.sleep(wait)
                     if attempt == _MAX_RETRIES - 1:
                         raise
