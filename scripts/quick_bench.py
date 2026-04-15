@@ -118,6 +118,40 @@ def build_moa() -> MixtureOfAgents:
     )
 
 
+def _select_specialist_fn(registry: ModelRegistry, laborer_size: float = 8.0, laborer_name: str = "llama-3.1-8b"):
+    """Return a specialist selector that always picks a model LARGER than the laborer.
+
+    Priority:
+    1. Groq mid-size (15-40B) in the domain
+    2. Any Groq model larger than laborer (prefer smallest-larger for cost)
+    3. Any model larger than laborer (fallback to local/other providers)
+    4. If no larger model exists, return the laborer itself → cascade skips specialist tier
+    """
+    def select(domain):
+        models = registry.get_models_for_domain(domain)
+
+        # Prefer Groq mid-size (15-40B)
+        mid_groq = [m for m in models if m.provider == "groq" and 15 <= m.size_b <= 40]
+        if mid_groq:
+            return mid_groq[0]
+
+        # Any Groq model strictly larger than laborer (pick smallest-larger for cost)
+        larger_groq = [m for m in models if m.provider == "groq" and m.size_b > laborer_size]
+        if larger_groq:
+            return min(larger_groq, key=lambda m: m.size_b)
+
+        # Any model larger than laborer (non-Groq fallback)
+        larger = [m for m in models if m.size_b > laborer_size]
+        if larger:
+            return min(larger, key=lambda m: m.size_b)
+
+        # No specialist > laborer available → return laborer (cascade skips this tier)
+        laborer = registry.get_by_name(laborer_name)
+        return laborer if laborer is not None else max(models, key=lambda m: m.size_b)
+
+    return select
+
+
 def build_selective_review():
     mlx_backend = MLXBackend()
     api_backend = LiteLLMBackend()
@@ -126,18 +160,9 @@ def build_selective_review():
         "mlx": mlx_backend, "groq": api_backend, "cerebras": api_backend, "together": api_backend,
     })
 
-    def select_specialist(domain):
-        # Use cheap domain specialist (not strongest — that's the senior's role)
-        models = registry.get_models_for_domain(domain)
-        # Prefer Groq mid-size specialists
-        for m in models:
-            if m.provider == "groq" and 15 <= m.size_b <= 40:
-                return m
-        return min(models, key=lambda m: m.size_b)
-
     return SelectiveReviewPipeline(
         executor=executor,
-        specialist_selector=select_specialist,
+        specialist_selector=_select_specialist_fn(registry, laborer_size=8.0),
         senior_reviewer=registry.get_by_name("qwen3-235b"),
         analyzer=TaskAnalyzer(),
     )
@@ -151,17 +176,10 @@ def build_cascade():
         "mlx": mlx_backend, "groq": api_backend, "cerebras": api_backend, "together": api_backend,
     })
 
-    def select_specialist(domain):
-        models = registry.get_models_for_domain(domain)
-        for m in models:
-            if m.provider == "groq" and 15 <= m.size_b <= 40:
-                return m
-        return min(models, key=lambda m: m.size_b)
-
     return CascadePipeline(
         executor=executor,
         laborer=registry.get_by_name("llama-3.1-8b"),
-        specialist_selector=select_specialist,
+        specialist_selector=_select_specialist_fn(registry, laborer_size=8.0),
         senior_reviewer=registry.get_by_name("qwen3-235b"),
         analyzer=TaskAnalyzer(),
     )

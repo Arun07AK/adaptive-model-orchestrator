@@ -14,7 +14,9 @@ Built in two versions:
 
 ## Benchmark Results
 
-All configurations compared on **MMLU (50 questions), GSM8K (30), ARC-Challenge (30)** — 110 questions total.
+All configurations compared on **MMLU (50 questions across 10 subjects), GSM8K (30), ARC-Challenge (30)** — 110 questions total.
+
+> **Sample size disclosure:** These are small sample sizes (95% confidence intervals are roughly ±13% on MMLU, ±17% on GSM8K and ARC). Treat results as directional evidence, not statistically robust claims. Full-suite MMLU evaluation (14K questions) planned.
 
 ### V1 Benchmarks — Parallel Collaboration
 
@@ -38,18 +40,20 @@ Built in two versions matching two real-world hierarchies:
 
 | V2 Config | MMLU | GSM8K | ARC | Senior called on | Mimics |
 |-----------|------|-------|-----|-----------------|--------|
-| **V2-A: Selective Review** (2-tier) | 56.0% | 93.3% | 76.7% | **13%** | Medical: resident → attending |
-| **V2-B: Cascade** (3-tier) | 62.0% | 90.0% | 76.7% | **6%** | Consulting: associate → manager → partner |
+| **V2-A: Selective Review** (2-tier) | 66.0% | 86.7% | **93.3%** | **11%** | Medical: resident → attending |
+| **V2-B: Cascade** (3-tier) | 66.0% | 83.3% | 76.7% | **7%** | Consulting: associate → manager → partner |
 
 - **V2-A** — Specialist answers, self-checks. Senior reviews only when specialist is inconsistent with itself.
 - **V2-B** — Adds a cheap Laborer tier first. Most questions never even reach the Specialist, let alone the Senior.
 
-**V2-B Cascade is the winner on cost efficiency: GSM8K 90% with the 235B model on only 6% of questions.**
+**V2-A Selective Review matches V1 Orchestrated on accuracy (MMLU 66%, ARC 93%) while calling the 235B model on only 11% of questions.** This is the cost-efficiency win: comparable results from 9× fewer expensive calls.
+
+**V2-B Cascade** pushes senior invocation even lower (7%) at the cost of some accuracy on ARC (where the 8B Laborer is confidently wrong on ~23% of questions, never triggering escalation).
 
 V2-B Cascade's tier usage (from actual run of 110 questions):
 - **Laborer** (Llama-3.1-8B, 8B): handled 110/110 (started every question)
-- **Specialist** (Qwen3-32B / domain-matched): 23/110 escalations (21%)
-- **Senior** (Qwen3-235B, Cerebras): 7/110 escalations (6%)
+- **Specialist** (domain-matched, strictly larger than laborer — Qwen3-32B math / Llama-4-Scout code / Llama-3.3-70B general): 20/110 escalations (18%)
+- **Senior** (Qwen3-235B, Cerebras): 8/110 escalations (7%)
 
 This matches how real expert teams operate — seniors touch only 5-20% of decisions.
 
@@ -64,8 +68,8 @@ The full picture of what was built:
 | Baseline 7B | 60% | 27% | 93% | — | Zero API cost | Dev/offline |
 | **V1 Orchestrated** | 76% | 70% | 93% | 100% | High — big model on every call | When accuracy dominates |
 | **V1 Hybrid** ⭐ | 76% | **97%** | **97%** | 100% | Highest — adds MoA overhead | Maximum accuracy scenarios |
-| **V2-A Selective Review** | 56% | 93% | 77% | 13% | Low — 87% handled by specialist | Medical-team-like escalation |
-| **V2-B Cascade** ⭐ | 62% | 90% | 77% | **6%** | Lowest — 94% never hit the 235B | Consulting-firm-like hierarchy |
+| **V2-A Selective Review** ⭐ | 66% | 87% | 93% | **11%** | Low — 89% handled by specialist | Medical-team-like escalation |
+| **V2-B Cascade** | 66% | 83% | 77% | **7%** | Lowest — 93% never hit the 235B | Consulting-firm-like hierarchy |
 
 ---
 
@@ -78,8 +82,8 @@ The full picture of what was built:
   Baseline 7B     ████████████████████████░░░░░░░░░░░░░░░░   60.0%
   V1 Orchestrated ██████████████████████████████░░░░░░░░░░   76.0% ⭐
   V1 Hybrid       ██████████████████████████████░░░░░░░░░░   76.0% ⭐
-  V2-A Sel.Review  ██████████████████████░░░░░░░░░░░░░░░░░░   56.0%
-  V2-B Cascade      █████████████████████████░░░░░░░░░░░░░░░   62.0%
+  V2-A Sel.Review ██████████████████████████░░░░░░░░░░░░░░   66.0%
+  V2-B Cascade    ██████████████████████████░░░░░░░░░░░░░░   66.0%
                   0%           25%            50%          75%         100%
 
 
@@ -89,8 +93,8 @@ The full picture of what was built:
   Baseline 7B     ██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   26.7%
   V1 Orchestrated ████████████████████████████░░░░░░░░░░░░   70.0%
   V1 Hybrid       ██████████████████████████████████████▓░   96.7% ⭐
-  V2-A Sel.Review  █████████████████████████████████████░░░   93.3%
-  V2-B Cascade      ████████████████████████████████████░░░░   90.0%
+  V2-A Sel.Review ██████████████████████████████████▓░░░░░   86.7%
+  V2-B Cascade    █████████████████████████████████▎░░░░░░   83.3%
                   0%           25%            50%          75%         100%
 
 
@@ -100,8 +104,8 @@ The full picture of what was built:
   Baseline 7B     █████████████████████████████████████▓░░   93.3%
   V1 Orchestrated █████████████████████████████████████▓░░   93.3%
   V1 Hybrid       ██████████████████████████████████████▓░   96.7% ⭐
-  V2-A Sel.Review  ██████████████████████████████░░░░░░░░░░   76.7%
-  V2-B Cascade      ██████████████████████████████░░░░░░░░░░   76.7%
+  V2-A Sel.Review █████████████████████████████████████▓░░   93.3%
+  V2-B Cascade    ██████████████████████████████░░░░░░░░░░   76.7%
                   0%           25%            50%          75%         100%
 
 
@@ -110,8 +114,8 @@ The full picture of what was built:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   V1 Orchestrated ████████████████████████████████████████  100%   ← every query
   V1 Hybrid       ████████████████████████████████████████  100%   ← every query
-  V2-A Sel.Review  █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   13%
-  V2-B Cascade      ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    6%   ← 94% of queries never hit it
+  V2-A Sel.Review ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   11%   ← 89% never hit it
+  V2-B Cascade    ███░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    7%   ← 93% never hit it
                   0%                  50%                  100%
 ```
 
@@ -120,21 +124,23 @@ The full picture of what was built:
 ║  V2-B CASCADE — TIER USAGE ON 110 BENCHMARK QUESTIONS                      ║
 ╠════════════════════════════════════════════════════════════════════════════╣
 ║                                                                            ║
-║   ┌─ TIER 1: LABORER (Llama-3.1-8B) ─────────────────────────────────┐    ║
+║   ┌─ TIER 1: LABORER (Llama-3.1-8B, 8B) ────────────────────────────┐    ║
 ║   │  ████████████████████████████████████████████████████  110/110   │    ║
 ║   │  100% — every question starts here                                │    ║
 ║   └───────────────────────────────────────────────────────────────────┘    ║
 ║          │                                                                 ║
 ║          ▼ escalates when Laborer is self-inconsistent                    ║
-║   ┌─ TIER 2: SPECIALIST (Qwen3-32B / domain-matched) ────────────────┐    ║
-║   │  ████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  23/110     │    ║
-║   │  21% — domain expertise layer                                     │    ║
+║   ┌─ TIER 2: SPECIALIST (domain-matched, strictly > 8B) ────────────┐    ║
+║   │  Math → Qwen3-32B · Code → Llama-4-Scout-17B                      │    ║
+║   │  General → Llama-3.3-70B                                          │    ║
+║   │  █████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  20/110     │    ║
+║   │  18% — domain expertise layer                                     │    ║
 ║   └───────────────────────────────────────────────────────────────────┘    ║
 ║          │                                                                 ║
 ║          ▼ escalates when Specialist is self-inconsistent                 ║
 ║   ┌─ TIER 3: SENIOR REVIEWER (Qwen3-235B, Cerebras) ────────────────┐    ║
-║   │  ███░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   7/110     │    ║
-║   │  6% — only the hardest cases                                      │    ║
+║   │  ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   8/110     │    ║
+║   │  7% — only the hardest cases                                      │    ║
 ║   └───────────────────────────────────────────────────────────────────┘    ║
 ║                                                                            ║
 ║  This is how real expert teams distribute work.                            ║
@@ -155,12 +161,11 @@ The full picture of what was built:
 │         │                                                                    │
 │     90% ┤                                V1 Hybrid ●       ⭐ max accuracy   │
 │         │                                            (100% senior calls)    │
-│     85% ┤              V1 Orchestrated ●                                    │
-│         │                              (100% senior calls)                  │
-│     80% ┤     V2-A Sel.Review ●                                             │
-│         │        (13% senior)                                               │
-│         │            V2-B Cascade ●   ⭐ best cost/quality                     │
-│     75% ┤               (6% senior)                                         │
+│     85% ┤  V2-A Sel.Review ● ⭐      V1 Orchestrated ●                      │
+│         │    (11% senior)              (100% senior calls)                  │
+│     80% ┤                                                                   │
+│         │            V2-B Cascade ●                                         │
+│     75% ┤               (7% senior)                                         │
 │         │                                                                    │
 │     70% ┤                                                                    │
 │         │                                                                    │
@@ -175,13 +180,17 @@ The full picture of what was built:
 
 ### The Two Winners
 
-**V1 Hybrid wins on raw accuracy:** 97% GSM8K, 97% ARC. Uses all models on every question.
+**V1 Hybrid wins on raw accuracy:** 96.7% GSM8K, 96.7% ARC. Uses the 235B model on every question.
 
-**V2-B Cascade wins on cost efficiency:** 90% GSM8K while calling the expensive model on only 6% of questions. Mimics real expert team dynamics where seniors are involved selectively.
+**V2-A Selective Review wins on cost-per-quality:** matches V1 Orchestrated on MMLU (66%) and ARC (93%) while calling the 235B model on only **11% of queries** — a 9× reduction in expensive calls for comparable accuracy.
+
+**V2-B Cascade pushes selectivity further (7% senior invocation)** but at the cost of ARC accuracy, because the 8B Laborer sometimes answers science questions confidently-but-wrongly and never triggers escalation. A known limitation of self-consistency as the sole confidence signal.
 
 ### Key Insight
 
-V1 is "everyone votes on everything." V2 is "triage first, escalate only when needed." Both beat single-model baselines. The right choice depends on whether you optimize for peak quality (V1) or cost-per-query (V2).
+V1 is "everyone votes on everything." V2 is "triage first, escalate only when needed." Both beat single-model baselines on reasoning tasks. The right choice depends on whether you optimize for peak quality (V1) or cost-per-query (V2).
+
+**Caveat:** V2's cost savings are most valuable on problems where reasoning (not memorization) dominates. For pure-knowledge benchmarks like ARC, the laborer's confident-wrong-answers cap the accuracy ceiling. This is a known tradeoff of cascade architectures.
 
 Total cost for all experiments: **$0** (Groq + Cerebras free tiers).
 
@@ -279,8 +288,8 @@ Question
 ```
 
 **Observed behavior (110 questions):**
-- Specialist handled **87% of questions alone** (self-consistent → high confidence)
-- Senior reviewer called on **13% of questions** (when specialist disagreed with itself)
+- Specialist handled **89% of questions alone** (self-consistent → high confidence)
+- Senior reviewer called on **11% of questions** (when specialist disagreed with itself)
 - Matches the attending-physician pattern almost exactly (resident handles ~85%, attending on ~15%)
 
 ---
@@ -328,8 +337,8 @@ Question
 
 **Observed behavior (110 questions):**
 - **Tier 1 (Laborer):** started every question — 110/110 (100%)
-- **Tier 2 (Specialist):** escalated on 23/110 (21%)
-- **Tier 3 (Senior):** reached on only **7/110 (6%)**
+- **Tier 2 (Specialist):** escalated on 20/110 (18%)
+- **Tier 3 (Senior):** reached on only **8/110 (7%)**
 
 This matches the **actual distribution of work in real consulting/engineering teams** — seniors involved selectively on the 5-20% of cases that actually need them.
 
@@ -339,8 +348,8 @@ This matches the **actual distribution of work in real consulting/engineering te
 
 | Version | Tiers | Mimics | Senior invocation | When to use |
 |---------|-------|--------|-------------------|-------------|
-| **V2-A Selective Review** | 2 | Medical (resident → attending) | 13% | When you have one strong specialist and don't need a separate "cheap volume" layer |
-| **V2-B Cascade** | 3 | Consulting (associate → manager → partner) | 6% | When you have a clear tier of cheap labor that can handle routine work |
+| **V2-A Selective Review** | 2 | Medical (resident → attending) | 11% | When you have one strong specialist and don't need a separate "cheap volume" layer |
+| **V2-B Cascade** | 3 | Consulting (associate → manager → partner) | 7% | When you have a clear tier of cheap labor that can handle routine work |
 
 Both achieve the same goal — **make the expensive model rare** — but V2-B pushes it further by adding the cheap laborer tier first.
 
