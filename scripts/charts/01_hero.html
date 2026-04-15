@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>01 Hero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 1080px;
+    height: 1080px;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #f1f5f9;
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(34, 211, 238, 0.12) 0%, transparent 45%),
+      radial-gradient(ellipse at 50% 70%, rgba(236, 72, 153, 0.08) 0%, transparent 50%),
+      linear-gradient(180deg, #0a0a12 0%, #000 100%);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Subtle grid overlay */
+  body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+    pointer-events: none;
+  }
+
+  /* Corner markers like a terminal/blueprint */
+  .corner {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-color: rgba(255,255,255,0.15);
+    border-style: solid;
+    border-width: 0;
+  }
+  .corner.tl { top: 48px; left: 48px; border-top-width: 1px; border-left-width: 1px; }
+  .corner.tr { top: 48px; right: 48px; border-top-width: 1px; border-right-width: 1px; }
+  .corner.bl { bottom: 48px; left: 48px; border-bottom-width: 1px; border-left-width: 1px; }
+  .corner.br { bottom: 48px; right: 48px; border-bottom-width: 1px; border-right-width: 1px; }
+
+  .container {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    padding: 80px;
+    text-align: center;
+  }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.32em;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+
+  .eyebrow::before, .eyebrow::after {
+    content: '';
+    display: inline-block;
+    width: 40px;
+    height: 1px;
+    background: #334155;
+    vertical-align: middle;
+    margin: 0 16px;
+  }
+
+  .title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 58px;
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-bottom: 80px;
+  }
+
+  .title strong {
+    color: #22d3ee;
+    font-weight: 700;
+  }
+
+  .comparison {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    gap: 32px;
+    margin-bottom: 80px;
+  }
+
+  .card {
+    flex: 1;
+    max-width: 360px;
+    padding: 48px 32px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card.v1 {
+    border-color: rgba(236, 72, 153, 0.2);
+  }
+
+  .card.v2 {
+    border-color: rgba(34, 211, 238, 0.3);
+    background: rgba(34, 211, 238, 0.04);
+  }
+
+  .card.v2::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #22d3ee, transparent);
+  }
+
+  .card-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    color: #64748b;
+    margin-bottom: 4px;
+  }
+
+  .card-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: #94a3b8;
+    margin-bottom: 24px;
+  }
+
+  .card.v1 .card-label { color: #f472b6; }
+  .card.v2 .card-label { color: #22d3ee; }
+
+  .big-number {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 140px;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    margin-bottom: 16px;
+  }
+
+  .card.v1 .big-number {
+    color: #ec4899;
+    opacity: 0.55;
+  }
+
+  .card.v2 .big-number {
+    color: #22d3ee;
+    text-shadow:
+      0 0 60px rgba(34, 211, 238, 0.5),
+      0 0 120px rgba(34, 211, 238, 0.25);
+  }
+
+  .card-caption {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.4;
+  }
+
+  .takeaway {
+    margin-top: 12px;
+  }
+
+  .takeaway-big {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 42px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+
+  .takeaway-big .accent {
+    color: #22d3ee;
+    font-weight: 700;
+  }
+
+  .takeaway-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    color: #94a3b8;
+    font-weight: 400;
+  }
+
+  .footer {
+    position: absolute;
+    bottom: 60px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: #475569;
+    letter-spacing: 0.05em;
+  }
+
+  .footer .arrow {
+    color: #22d3ee;
+    margin-right: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<div class="container">
+  <div class="eyebrow">Adaptive Model Orchestrator</div>
+
+  <h1 class="title">
+    Two architectures.<br>
+    <strong>Same accuracy.</strong>
+  </h1>
+
+  <div class="comparison">
+    <div class="card v1">
+      <div class="card-label">V1</div>
+      <div class="card-name">Mixture of Agents</div>
+      <div class="big-number">100<span style="font-size: 60%;">%</span></div>
+      <div class="card-caption">of queries call the<br>expensive 235B model</div>
+    </div>
+
+    <div class="card v2">
+      <div class="card-label">V2</div>
+      <div class="card-name">Selective Review</div>
+      <div class="big-number">11<span style="font-size: 60%;">%</span></div>
+      <div class="card-caption">of queries call the<br>expensive 235B model</div>
+    </div>
+  </div>
+
+  <div class="takeaway">
+    <div class="takeaway-big"><span class="accent">9×</span> fewer expensive calls.</div>
+    <div class="takeaway-sub">Same accuracy on MMLU &amp; ARC.</div>
+  </div>
+</div>
+
+<div class="footer">
+  <span class="arrow">→</span>github.com/Arun07AK/adaptive-model-orchestrator
+</div>
+</body>
+</html>

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>02 Benchmarks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 1080px;
+    height: 1080px;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #f1f5f9;
+    background:
+      radial-gradient(ellipse at 20% 10%, rgba(34, 211, 238, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 90%, rgba(236, 72, 153, 0.06) 0%, transparent 50%),
+      linear-gradient(180deg, #0a0a12 0%, #000 100%);
+    position: relative;
+    padding: 80px;
+  }
+
+  body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
+    pointer-events: none;
+  }
+
+  .corner {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    border-color: rgba(255,255,255,0.15);
+    border-style: solid;
+    border-width: 0;
+  }
+  .corner.tl { top: 40px; left: 40px; border-top-width: 1px; border-left-width: 1px; }
+  .corner.tr { top: 40px; right: 40px; border-top-width: 1px; border-right-width: 1px; }
+  .corner.bl { bottom: 40px; left: 40px; border-bottom-width: 1px; border-left-width: 1px; }
+  .corner.br { bottom: 40px; right: 40px; border-bottom-width: 1px; border-right-width: 1px; }
+
+  .container {
+    position: relative;
+    z-index: 2;
+  }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.3em;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .eyebrow::before {
+    content: '';
+    width: 40px;
+    height: 1px;
+    background: #334155;
+  }
+
+  .title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 44px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+
+  .subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: #64748b;
+    margin-bottom: 56px;
+    letter-spacing: 0.02em;
+  }
+
+  .subtitle .dot { color: #22d3ee; margin: 0 8px; }
+
+  .rows {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 220px 1fr 60px;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .row-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    color: #cbd5e1;
+    letter-spacing: 0.02em;
+  }
+
+  .row-label .version {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 8px;
+    background: rgba(255,255,255,0.06);
+    color: #94a3b8;
+    letter-spacing: 0.1em;
+  }
+
+  .row-label.v1 .version { color: #ec4899; background: rgba(236,72,153,0.1); border: 1px solid rgba(236,72,153,0.25); }
+  .row-label.v2 .version { color: #22d3ee; background: rgba(34,211,238,0.1); border: 1px solid rgba(34,211,238,0.25); }
+  .row-label.baseline .version { color: #94a3b8; }
+
+  .bars {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .bar-row {
+    display: grid;
+    grid-template-columns: 60px 1fr 50px;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .bar-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #64748b;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .bar-track {
+    height: 14px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    position: relative;
+  }
+
+  .bar-fill.mmlu {
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
+  }
+
+  .bar-fill.gsm8k {
+    background: linear-gradient(90deg, #06b6d4, #22d3ee);
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.3);
+  }
+
+  .bar-fill.arc {
+    background: linear-gradient(90deg, #d97706, #fbbf24);
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.3);
+  }
+
+  .bar-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: #e2e8f0;
+    text-align: right;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .tag.peak {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+  }
+
+  .tag.efficient {
+    background: rgba(34, 211, 238, 0.15);
+    color: #22d3ee;
+    border: 1px solid rgba(34, 211, 238, 0.3);
+  }
+
+  .legend {
+    display: flex;
+    justify-content: flex-end;
+    gap: 32px;
+    margin-top: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+  }
+
+  .legend-dot.mmlu { background: #60a5fa; }
+  .legend-dot.gsm8k { background: #22d3ee; }
+  .legend-dot.arc { background: #fbbf24; }
+
+  .footer {
+    position: absolute;
+    bottom: 40px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #475569;
+    letter-spacing: 0.05em;
+  }
+
+  .footer .arrow { color: #22d3ee; margin-right: 8px; }
+</style>
+</head>
+<body>
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<div class="container">
+  <div class="eyebrow">Benchmark Results</div>
+  <h1 class="title">Accuracy across 110 questions.</h1>
+  <div class="subtitle">MMLU (50)<span class="dot">·</span>GSM8K (30)<span class="dot">·</span>ARC-Challenge (30)</div>
+
+  <div class="rows">
+
+    <div class="row">
+      <div class="row-label baseline"><span class="version">BASELINE</span>Qwen 2.5 7B</div>
+      <div class="bars">
+        <div class="bar-row"><span class="bar-name">MMLU</span><div class="bar-track"><div class="bar-fill mmlu" style="width: 60%"></div></div><span class="bar-value">60</span></div>
+        <div class="bar-row"><span class="bar-name">GSM8K</span><div class="bar-track"><div class="bar-fill gsm8k" style="width: 26.7%"></div></div><span class="bar-value">27</span></div>
+        <div class="bar-row"><span class="bar-name">ARC</span><div class="bar-track"><div class="bar-fill arc" style="width: 93.3%"></div></div><span class="bar-value">93</span></div>
+      </div>
+      <div></div>
+    </div>
+
+    <div class="row">
+      <div class="row-label v1"><span class="version">V1</span>Orchestrated</div>
+      <div class="bars">
+        <div class="bar-row"><span class="bar-name">MMLU</span><div class="bar-track"><div class="bar-fill mmlu" style="width: 76%"></div></div><span class="bar-value">76</span></div>
+        <div class="bar-row"><span class="bar-name">GSM8K</span><div class="bar-track"><div class="bar-fill gsm8k" style="width: 70%"></div></div><span class="bar-value">70</span></div>
+        <div class="bar-row"><span class="bar-name">ARC</span><div class="bar-track"><div class="bar-fill arc" style="width: 93.3%"></div></div><span class="bar-value">93</span></div>
+      </div>
+      <div></div>
+    </div>
+
+    <div class="row">
+      <div class="row-label v1"><span class="version">V1</span>Hybrid MoA</div>
+      <div class="bars">
+        <div class="bar-row"><span class="bar-name">MMLU</span><div class="bar-track"><div class="bar-fill mmlu" style="width: 76%"></div></div><span class="bar-value">76</span></div>
+        <div class="bar-row"><span class="bar-name">GSM8K</span><div class="bar-track"><div class="bar-fill gsm8k" style="width: 96.7%"></div></div><span class="bar-value">97</span></div>
+        <div class="bar-row"><span class="bar-name">ARC</span><div class="bar-track"><div class="bar-fill arc" style="width: 96.7%"></div></div><span class="bar-value">97</span></div>
+      </div>
+      <span class="tag peak">PEAK</span>
+    </div>
+
+    <div class="row">
+      <div class="row-label v2"><span class="version">V2-A</span>Selective Review</div>
+      <div class="bars">
+        <div class="bar-row"><span class="bar-name">MMLU</span><div class="bar-track"><div class="bar-fill mmlu" style="width: 66%"></div></div><span class="bar-value">66</span></div>
+        <div class="bar-row"><span class="bar-name">GSM8K</span><div class="bar-track"><div class="bar-fill gsm8k" style="width: 86.7%"></div></div><span class="bar-value">87</span></div>
+        <div class="bar-row"><span class="bar-name">ARC</span><div class="bar-track"><div class="bar-fill arc" style="width: 93.3%"></div></div><span class="bar-value">93</span></div>
+      </div>
+      <span class="tag efficient">9× CHEAPER</span>
+    </div>
+
+    <div class="row">
+      <div class="row-label v2"><span class="version">V2-B</span>Cascade</div>
+      <div class="bars">
+        <div class="bar-row"><span class="bar-name">MMLU</span><div class="bar-track"><div class="bar-fill mmlu" style="width: 66%"></div></div><span class="bar-value">66</span></div>
+        <div class="bar-row"><span class="bar-name">GSM8K</span><div class="bar-track"><div class="bar-fill gsm8k" style="width: 83.3%"></div></div><span class="bar-value">83</span></div>
+        <div class="bar-row"><span class="bar-name">ARC</span><div class="bar-track"><div class="bar-fill arc" style="width: 76.7%"></div></div><span class="bar-value">77</span></div>
+      </div>
+      <div></div>
+    </div>
+
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="legend-dot mmlu"></span>MMLU — knowledge</div>
+    <div class="legend-item"><span class="legend-dot gsm8k"></span>GSM8K — math</div>
+    <div class="legend-item"><span class="legend-dot arc"></span>ARC — science</div>
+  </div>
+</div>
+
+<div class="footer">
+  <span class="arrow">→</span>github.com/Arun07AK/adaptive-model-orchestrator
+</div>
+</body>
+</html>

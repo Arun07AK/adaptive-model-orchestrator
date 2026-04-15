@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>04 Research</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 1080px;
+    height: 1080px;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #f1f5f9;
+    background:
+      radial-gradient(ellipse at 50% 80%, rgba(34, 211, 238, 0.12) 0%, transparent 50%),
+      linear-gradient(180deg, #0a0a12 0%, #000 100%);
+    position: relative;
+    padding: 70px 80px;
+  }
+
+  body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 20%, transparent 80%);
+    pointer-events: none;
+  }
+
+  .corner {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    border-color: rgba(255,255,255,0.15);
+    border-style: solid;
+    border-width: 0;
+  }
+  .corner.tl { top: 40px; left: 40px; border-top-width: 1px; border-left-width: 1px; }
+  .corner.tr { top: 40px; right: 40px; border-top-width: 1px; border-right-width: 1px; }
+  .corner.bl { bottom: 40px; left: 40px; border-bottom-width: 1px; border-left-width: 1px; }
+  .corner.br { bottom: 40px; right: 40px; border-bottom-width: 1px; border-right-width: 1px; }
+
+  .container { position: relative; z-index: 2; }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.3em;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .eyebrow::before { content: ''; width: 40px; height: 1px; background: #334155; }
+
+  .title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 44px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 10px;
+    max-width: 800px;
+  }
+
+  .subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 17px;
+    color: #94a3b8;
+    margin-bottom: 44px;
+    max-width: 800px;
+    line-height: 1.5;
+  }
+
+  .subtitle .accent { color: #22d3ee; font-weight: 500; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 36px;
+  }
+
+  .card {
+    padding: 24px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.02);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+  }
+
+  .card .icon {
+    font-size: 32px;
+    margin-bottom: 14px;
+    display: block;
+  }
+
+  .card .industry {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .card .hierarchy {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    color: #e2e8f0;
+    font-weight: 500;
+    line-height: 1.35;
+    margin-bottom: 14px;
+    letter-spacing: -0.005em;
+  }
+
+  .card .pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: #22d3ee;
+    letter-spacing: 0.05em;
+  }
+
+  .card .pct-note {
+    color: #64748b;
+    font-weight: 400;
+    margin-left: 4px;
+  }
+
+  .conclusion {
+    padding: 32px 40px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(34,211,238,0.08) 0%, rgba(34,211,238,0.02) 100%);
+    border: 1px solid rgba(34,211,238,0.25);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 0 40px rgba(34,211,238,0.1);
+  }
+
+  .conclusion-left {
+    flex: 1;
+  }
+
+  .conclusion-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: #22d3ee;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .conclusion-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 24px;
+    font-weight: 600;
+    color: #f1f5f9;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  .conclusion-number {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 88px;
+    font-weight: 700;
+    color: #22d3ee;
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    text-shadow: 0 0 40px rgba(34,211,238,0.4);
+  }
+
+  .conclusion-number .pct {
+    font-size: 60%;
+    font-weight: 600;
+  }
+
+  .footer {
+    position: absolute;
+    bottom: 32px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #475569;
+    letter-spacing: 0.05em;
+  }
+
+  .footer .arrow { color: #22d3ee; margin-right: 8px; }
+</style>
+</head>
+<body>
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<div class="container">
+  <div class="eyebrow">Research-backed design</div>
+  <h1 class="title">Inspired by how real expert teams work.</h1>
+  <p class="subtitle">Researched five industries before designing V2. <span class="accent">Seniors touch 5–20% of decisions, never 100%.</span> The system mirrors the pattern.</p>
+
+  <div class="grid">
+    <div class="card">
+      <span class="icon">🏥</span>
+      <div class="industry">Hospitals</div>
+      <div class="hierarchy">Nurse → Resident → Attending</div>
+      <div class="pct">Attending on 5–20%<span class="pct-note">of cases</span></div>
+    </div>
+
+    <div class="card">
+      <span class="icon">📊</span>
+      <div class="industry">Consulting</div>
+      <div class="hierarchy">Associate → Manager → Partner</div>
+      <div class="pct">Partner on ~20%<span class="pct-note">of meetings</span></div>
+    </div>
+
+    <div class="card">
+      <span class="icon">💻</span>
+      <div class="industry">Engineering</div>
+      <div class="hierarchy">Junior → Senior → Architect</div>
+      <div class="pct">Architect on design docs<span class="pct-note">only</span></div>
+    </div>
+
+    <div class="card">
+      <span class="icon">🏗️</span>
+      <div class="industry">Construction</div>
+      <div class="hierarchy">Laborer → Tradesperson → PE</div>
+      <div class="pct">PE on load-bearing<span class="pct-note">only</span></div>
+    </div>
+
+    <div class="card">
+      <span class="icon">🎓</span>
+      <div class="industry">Academia</div>
+      <div class="hierarchy">PhD → Postdoc → PI</div>
+      <div class="pct">PI on top-tier papers<span class="pct-note">only</span></div>
+    </div>
+
+    <div class="card" style="border-color: rgba(148,163,184,0.12); background: rgba(148,163,184,0.02);">
+      <span class="icon" style="font-size: 24px; display: block; color: #64748b; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.15em; margin-bottom: 12px;">+ FrugalGPT</span>
+      <div class="industry">Cascade paper</div>
+      <div class="hierarchy">Cheap-first, escalate on uncertainty</div>
+      <div class="pct" style="color: #94a3b8;">GPT-4 quality at 2%<span class="pct-note">cost</span></div>
+    </div>
+  </div>
+
+  <div class="conclusion">
+    <div class="conclusion-left">
+      <div class="conclusion-label">My system</div>
+      <div class="conclusion-text">V2-A calls the senior reviewer on:</div>
+    </div>
+    <div class="conclusion-number">11<span class="pct">%</span></div>
+  </div>
+</div>
+
+<div class="footer">
+  <span class="arrow">→</span>github.com/Arun07AK/adaptive-model-orchestrator
+</div>
+</body>
+</html>

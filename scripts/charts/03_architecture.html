@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>03 Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 1080px;
+    height: 1080px;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #f1f5f9;
+    background:
+      radial-gradient(ellipse at 50% 50%, rgba(34, 211, 238, 0.1) 0%, transparent 50%),
+      linear-gradient(180deg, #0a0a12 0%, #000 100%);
+    position: relative;
+    padding: 70px 80px;
+  }
+
+  body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 20%, transparent 80%);
+    pointer-events: none;
+  }
+
+  .corner {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    border-color: rgba(255,255,255,0.15);
+    border-style: solid;
+    border-width: 0;
+  }
+  .corner.tl { top: 40px; left: 40px; border-top-width: 1px; border-left-width: 1px; }
+  .corner.tr { top: 40px; right: 40px; border-top-width: 1px; border-right-width: 1px; }
+  .corner.bl { bottom: 40px; left: 40px; border-bottom-width: 1px; border-left-width: 1px; }
+  .corner.br { bottom: 40px; right: 40px; border-bottom-width: 1px; border-right-width: 1px; }
+
+  .container { position: relative; z-index: 2; }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.3em;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .eyebrow::before { content: ''; width: 40px; height: 1px; background: #334155; }
+
+  .title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 42px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 10px;
+  }
+
+  .subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    color: #64748b;
+    margin-bottom: 48px;
+    font-style: italic;
+  }
+
+  .flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .node {
+    padding: 18px 32px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.02);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.08);
+    text-align: center;
+    position: relative;
+  }
+
+  .node .node-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .node .node-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: #f1f5f9;
+    letter-spacing: -0.01em;
+  }
+  .node .node-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 6px;
+  }
+
+  .node.question {
+    border-color: rgba(148,163,184,0.25);
+    min-width: 240px;
+  }
+
+  .node.specialist {
+    border-color: rgba(59,130,246,0.3);
+    background: rgba(59,130,246,0.03);
+    width: 620px;
+    padding: 24px 36px;
+  }
+  .node.specialist .node-label { color: #60a5fa; }
+  .node.specialist .model-pills {
+    margin-top: 14px;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #cbd5e1;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: rgba(96,165,250,0.1);
+    border: 1px solid rgba(96,165,250,0.2);
+  }
+  .node.specialist .node-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: #94a3b8;
+    margin-top: 10px;
+    font-style: italic;
+  }
+
+  .node.pass {
+    border-color: rgba(16,185,129,0.3);
+    background: rgba(16,185,129,0.03);
+    min-width: 250px;
+  }
+  .node.pass .node-label { color: #10b981; }
+
+  .node.escalate {
+    border-color: rgba(34,211,238,0.35);
+    background: rgba(34,211,238,0.04);
+    min-width: 250px;
+  }
+  .node.escalate .node-label { color: #22d3ee; }
+
+  .node.senior {
+    border-color: rgba(236,72,153,0.35);
+    background: rgba(236,72,153,0.04);
+    min-width: 320px;
+    box-shadow: 0 0 40px rgba(236,72,153,0.12);
+  }
+  .node.senior .node-label { color: #ec4899; }
+
+  .arrow-down {
+    width: 2px;
+    height: 36px;
+    background: linear-gradient(to bottom, rgba(148,163,184,0.5), rgba(148,163,184,0.1));
+    position: relative;
+  }
+  .arrow-down::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 8px solid rgba(148,163,184,0.6);
+  }
+
+  .branch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    margin-top: 0;
+    position: relative;
+    width: 100%;
+  }
+
+  .branch-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .branch-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .branch-label.yes { color: #10b981; }
+  .branch-label.no { color: #22d3ee; }
+
+  .branch-connector {
+    width: 2px;
+    height: 24px;
+    position: relative;
+  }
+  .branch-connector.yes { background: linear-gradient(to bottom, rgba(148,163,184,0.5), rgba(16,185,129,0.5)); }
+  .branch-connector.no { background: linear-gradient(to bottom, rgba(148,163,184,0.5), rgba(34,211,238,0.5)); }
+
+  .decision {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    color: #94a3b8;
+    font-style: italic;
+    margin: 18px 0 6px;
+  }
+
+  .pct-badge {
+    display: inline-block;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+
+  .pct-badge.yes { color: #10b981; text-shadow: 0 0 24px rgba(16,185,129,0.4); }
+  .pct-badge.no { color: #22d3ee; text-shadow: 0 0 24px rgba(34,211,238,0.4); }
+
+  .footer {
+    position: absolute;
+    bottom: 32px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #475569;
+    letter-spacing: 0.05em;
+  }
+
+  .footer .arrow { color: #22d3ee; margin-right: 8px; }
+</style>
+</head>
+<body>
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<div class="container">
+  <div class="eyebrow">V2-A · Selective Review</div>
+  <h1 class="title">Mimics medical triage:<br>resident → attending escalation.</h1>
+  <div class="subtitle">Specialist answers. Senior intervenes only on disagreement.</div>
+
+  <div class="flow">
+    <div class="node question">
+      <div class="node-label">INPUT</div>
+      <div class="node-title">Question</div>
+    </div>
+
+    <div class="arrow-down"></div>
+
+    <div class="node specialist">
+      <div class="node-label">TIER 1 · SPECIALIST</div>
+      <div class="node-title">Domain-matched specialist</div>
+      <div class="model-pills">
+        <span class="pill">Qwen3-32B · math</span>
+        <span class="pill">Llama-3.3-70B · general</span>
+        <span class="pill">Llama-4-Scout-17B · code</span>
+      </div>
+      <div class="node-sub">self-consistency check · 2 samples at temp=0.0, temp=0.5</div>
+    </div>
+
+    <div class="decision">Do the attempts agree?</div>
+
+    <div class="branch">
+      <div class="branch-col">
+        <div class="branch-label yes">✓ YES · 89%</div>
+        <div class="branch-connector yes"></div>
+        <div class="node pass">
+          <div class="node-label">HIGH CONFIDENCE</div>
+          <div class="node-title">Return answer</div>
+          <div class="node-meta">Specialist handles alone</div>
+        </div>
+      </div>
+
+      <div class="branch-col">
+        <div class="branch-label no">✗ NO · 11%</div>
+        <div class="branch-connector no"></div>
+        <div class="node escalate">
+          <div class="node-label">LOW CONFIDENCE</div>
+          <div class="node-title">Escalate to senior</div>
+          <div class="node-meta">Send both attempts for review</div>
+        </div>
+        <div class="arrow-down" style="height: 20px;"></div>
+        <div class="node senior">
+          <div class="node-label">TIER 2 · SENIOR REVIEWER</div>
+          <div class="node-title">Qwen3-235B <span style="color:#64748b; font-weight: 400; font-size: 16px;">· Cerebras</span></div>
+          <div class="node-meta">235B parameters · final decision</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <span class="arrow">→</span>github.com/Arun07AK/adaptive-model-orchestrator
+</div>
+</body>
+</html>
