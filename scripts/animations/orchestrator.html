@@ -22,6 +22,7 @@
   --red: #f87171;
   --blue: #60a5fa;
   --gray: #94a3b8;
+  --purple: #a78bfa;
 }
 
 html, body {
@@ -748,293 +749,723 @@ body::before {
 .hidden-init { opacity: 0; transform: translateY(8px); }
 .show { opacity: 1; transform: translateY(0); transition: all 0.4s; }
 
+/* ============ MODE TOGGLE ============ */
+.mode-toggle {
+  position: fixed;
+  top: 20px;
+  right: 80px;
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 25;
+  backdrop-filter: blur(10px);
+  background: var(--glass);
+}
+.mode-btn {
+  padding: 8px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--dim);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+.mode-btn.active {
+  background: rgba(34, 211, 238, 0.12);
+  color: var(--cyan);
+}
+.mode-btn:hover:not(.active) { color: var(--text); }
+
+/* Mode visibility */
+.view-buddies { display: none; }
+body.mode-buddies .view-tech { display: none; }
+body.mode-buddies .view-buddies { display: flex; }
+
+/* ============ V3 MODEL BOXES ============ */
+.model-box.v3-a.active {
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.06);
+  box-shadow: 0 0 40px rgba(96, 165, 250, 0.25);
+}
+.model-box.v3-a.active .m-label { color: #60a5fa; }
+
+.model-box.v3-b.active {
+  border-color: #22d3ee;
+  background: rgba(34, 211, 238, 0.06);
+  box-shadow: 0 0 40px rgba(34, 211, 238, 0.25);
+}
+.model-box.v3-b.active .m-label { color: #22d3ee; }
+
+/* ============ CROSS-MODEL GROUP WRAPPER ============ */
+.cm-group {
+  width: 100%;
+  padding: 16px 14px 12px;
+  border: 1px dashed rgba(167, 139, 250, 0.25);
+  border-radius: 12px;
+  background: rgba(167, 139, 250, 0.02);
+  position: relative;
+}
+
+.cm-group::before {
+  content: 'DIFFERENT FAMILIES · ARCHITECTURALLY ORTHOGONAL · temp=0';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--purple);
+  background: var(--bg);
+  padding: 2px 12px;
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.cm-group .parallel-row { margin-top: 2px; }
+
+/* ============ V3 PARETO FILL ============ */
+.pareto-fill.v3 { background: linear-gradient(90deg, #7c3aed, #a78bfa); box-shadow: 0 0 20px rgba(167,139,250,0.4); }
+
+/* ============ BUDDIES VIEW ============ */
+.view-buddies {
+  width: 100%;
+  max-width: 900px;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px 0;
+}
+
+.buddies-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.buddies-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  color: var(--dim);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.buddies-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.buddies-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  color: var(--gray);
+  font-style: italic;
+}
+
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  backdrop-filter: blur(16px);
+  min-height: 420px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.bubble {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: all 0.3s ease;
+}
+.bubble.show { opacity: 1; transform: translateY(0); }
+.bubble.right { flex-direction: row-reverse; }
+
+.bubble-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #0a0a12;
+  flex-shrink: 0;
+}
+
+.bubble-body {
+  padding: 10px 14px;
+  border-radius: 14px;
+  max-width: 70%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+}
+.bubble.right .bubble-body { border-top-right-radius: 4px; }
+.bubble:not(.right) .bubble-body { border-top-left-radius: 4px; }
+
+.bubble-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.bubble-model {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--dim);
+  opacity: 0.7;
+  margin-top: 4px;
+}
+.bubble-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.bubble[data-from="solo"] .bubble-avatar { background: #94a3b8; }
+.bubble[data-from="solo"] .bubble-name { color: #94a3b8; }
+.bubble[data-from="luno"] .bubble-avatar { background: #fbbf24; }
+.bubble[data-from="luno"] .bubble-name { color: #fbbf24; }
+.bubble[data-from="qwenny"] .bubble-avatar { background: #22d3ee; }
+.bubble[data-from="qwenny"] .bubble-name { color: #22d3ee; }
+.bubble[data-from="leo"] .bubble-avatar { background: #60a5fa; }
+.bubble[data-from="leo"] .bubble-name { color: #60a5fa; }
+.bubble[data-from="scout"] .bubble-avatar { background: #f87171; }
+.bubble[data-from="scout"] .bubble-name { color: #f87171; }
+.bubble[data-from="profq"] .bubble-avatar { background: #a78bfa; }
+.bubble[data-from="profq"] .bubble-name { color: #a78bfa; }
+.bubble[data-from="profq"] .bubble-body {
+  background: rgba(167, 139, 250, 0.06);
+  border-color: rgba(167, 139, 250, 0.3);
+}
+.bubble[data-from="system"] .bubble-avatar {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--dim);
+  font-size: 11px;
+}
+.bubble[data-from="system"] .bubble-body {
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+}
+.bubble[data-from="system"] .bubble-text {
+  color: var(--dim);
+  font-style: italic;
+  font-size: 12px;
+}
+
+/* Meet-the-team grid */
+.buddies-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.buddy-card {
+  padding: 20px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  text-align: center;
+  backdrop-filter: blur(16px);
+}
+.buddy-card .b-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: #0a0a12;
+  margin: 0 auto 12px;
+}
+.buddy-card .b-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.buddy-card .b-model {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--dim);
+  margin-bottom: 8px;
+}
+.buddy-card .b-trait {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--gray);
+  font-style: italic;
+  line-height: 1.4;
+}
+.buddy-card[data-buddy="solo"] .b-avatar { background: #94a3b8; }
+.buddy-card[data-buddy="luno"] .b-avatar { background: #fbbf24; }
+.buddy-card[data-buddy="qwenny"] .b-avatar { background: #22d3ee; }
+.buddy-card[data-buddy="leo"] .b-avatar { background: #60a5fa; }
+.buddy-card[data-buddy="scout"] .b-avatar { background: #f87171; }
+.buddy-card[data-buddy="profq"] .b-avatar { background: #a78bfa; }
+
 </style>
 </head>
 
-<body>
+<body class="mode-tech">
 <div class="corner tl"></div>
 <div class="corner tr"></div>
 <div class="corner bl"></div>
 <div class="corner br"></div>
 
 <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
-<div class="scene-indicator"><span id="sceneCur">1</span>/<span id="sceneTot">8</span> · <span class="active-scene" id="sceneName">Intro</span></div>
+<div class="scene-indicator"><span id="sceneCur">1</span>/<span id="sceneTot">9</span> · <span class="active-scene" id="sceneName">Intro</span></div>
+
+<div class="mode-toggle">
+  <button class="mode-btn active" data-mode="tech" onclick="setMode('tech')">&#128300; Tech</button>
+  <button class="mode-btn" data-mode="buddies" onclick="setMode('buddies')">&#128172; Buddies</button>
+</div>
 
 <!-- =========== INTRO =========== -->
 <div class="scene" id="scene-intro">
-  <div class="intro-content">
-    <div class="intro-label">A Walkthrough</div>
-    <h1 class="intro-title">Adaptive Model<br><span class="accent">Orchestrator</span></h1>
-    <p class="intro-sub">Six architectures. Three benchmark questions.<br>Watch how each handles the same inputs.</p>
-    <div class="intro-stats">
-      <div class="intro-stat"><div class="num">6</div><div class="label">Architectures</div></div>
-      <div class="intro-stat"><div class="num">3</div><div class="label">Benchmarks</div></div>
-      <div class="intro-stat"><div class="num">$0</div><div class="label">API Cost</div></div>
+  <div class="view-tech">
+    <div class="intro-content">
+      <div class="intro-label">A Walkthrough</div>
+      <h1 class="intro-title">Adaptive Model<br><span class="accent">Orchestrator</span></h1>
+      <p class="intro-sub">Seven architectures. Three benchmark questions.<br>Watch how each handles the same inputs.</p>
+      <div class="intro-stats">
+        <div class="intro-stat"><div class="num">7</div><div class="label">Architectures</div></div>
+        <div class="intro-stat"><div class="num">3</div><div class="label">Benchmarks</div></div>
+        <div class="intro-stat"><div class="num">$0</div><div class="label">API Cost</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="view-buddies">
+    <div class="buddies-header">
+      <div class="buddies-eyebrow">Scene 1 &middot; Meet the Team</div>
+      <h2 class="buddies-title">Meet the model buddies.</h2>
+      <p class="buddies-desc">Six open-source models. Each plays a role in the orchestrator.</p>
+    </div>
+    <div class="buddies-grid">
+      <div class="buddy-card" data-buddy="solo"><div class="b-avatar">S</div><div class="b-name">Solo</div><div class="b-model">Qwen 2.5 7B &middot; local</div><div class="b-trait">Works alone. Cheap but limited.</div></div>
+      <div class="buddy-card" data-buddy="luno"><div class="b-avatar">L</div><div class="b-name">Luno</div><div class="b-model">Llama-3.1-8B &middot; Groq</div><div class="b-trait">Eager junior. Tries first.</div></div>
+      <div class="buddy-card" data-buddy="qwenny"><div class="b-avatar">Q</div><div class="b-name">Qwenny</div><div class="b-model">Qwen3-32B &middot; Groq</div><div class="b-trait">Math specialist. Shows work.</div></div>
+      <div class="buddy-card" data-buddy="leo"><div class="b-avatar">E</div><div class="b-name">Leo</div><div class="b-model">Llama-3.3-70B &middot; Groq</div><div class="b-trait">Broad generalist. Careful.</div></div>
+      <div class="buddy-card" data-buddy="scout"><div class="b-avatar">C</div><div class="b-name">Scout</div><div class="b-model">Llama-4-Scout-17B &middot; Groq</div><div class="b-trait">Code-focused. Direct.</div></div>
+      <div class="buddy-card" data-buddy="profq"><div class="b-avatar">P</div><div class="b-name">Professor Q</div><div class="b-model">Qwen3-235B &middot; Cerebras</div><div class="b-trait">The senior. Final word.</div></div>
     </div>
   </div>
 </div>
 
 <!-- =========== BASELINE =========== -->
 <div class="scene" id="scene-baseline">
-  <div class="arch-header">
-    <div class="arch-eyebrow">Architecture 1 of 6 · Baseline</div>
-    <h2 class="arch-title">Single Model Baseline</h2>
-    <p class="arch-desc">One 7B model answers every question. Cheap, but limited.</p>
+  <div class="view-tech">
+    <div class="arch-header">
+      <div class="arch-eyebrow">Architecture 1 of 7 &middot; Baseline</div>
+      <h2 class="arch-title">Single Model Baseline</h2>
+      <p class="arch-desc">One 7B model answers every question. Cheap, but limited.</p>
+    </div>
+    <div class="arch-workspace">
+      <div class="arch-diagram">
+        <div class="question-display" id="bl-q"><div class="q-label">Question</div><div id="bl-qt">&#8212;</div></div>
+        <div class="arrow-down"></div>
+        <div class="model-box" id="bl-model" style="min-width: 280px;">
+          <div class="m-label">Only Model</div>
+          <div class="m-name">Qwen 2.5 7B</div>
+          <div class="m-size">7B &middot; local &middot; 0 API calls</div>
+        </div>
+        <div class="arrow-down"></div>
+        <div class="answer-display" id="bl-a"><div class="answer-label">Answer</div><span class="answer-value">&#8212;</span></div>
+      </div>
+      <div class="arch-summary">
+        <div class="summary-label">Benchmark Results</div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">60%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="60"></div></div></div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">27%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="27"></div></div></div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">93%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="93"></div></div></div>
+        <div class="summary-divider"></div>
+        <div class="summary-meta">
+          <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v">0%</span></div>
+          <div class="summary-meta-row"><span class="meta-k">Role</span><span class="meta-v">Lower bound</span></div>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="arch-workspace">
-    <div class="arch-diagram">
-      <div class="question-display" id="bl-q"><div class="q-label">Question</div><div id="bl-qt">—</div></div>
-      <div class="arrow-down"></div>
-      <div class="model-box" id="bl-model" style="min-width: 280px;">
-        <div class="m-label">Only Model</div>
-        <div class="m-name">Qwen 2.5 7B</div>
-        <div class="m-size">7B · local · 0 API calls</div>
-      </div>
-      <div class="arrow-down"></div>
-      <div class="answer-display" id="bl-a"><div class="answer-label">Answer</div><span class="answer-value">—</span></div>
+  <div class="view-buddies">
+    <div class="buddies-header">
+      <div class="buddies-eyebrow">Scene 2 &middot; Architecture 1 of 7</div>
+      <h2 class="buddies-title">Solo goes it alone.</h2>
+      <p class="buddies-desc">One 7B model, all questions, no backup. Fast and free &mdash; but cracks under pressure.</p>
     </div>
-    <div class="arch-summary">
-      <div class="summary-label">Benchmark Results</div>
-      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">60%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="60"></div></div></div>
-      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">27%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="27"></div></div></div>
-      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">93%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="93"></div></div></div>
-      <div class="summary-divider"></div>
-      <div class="summary-meta">
-        <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v">0%</span></div>
-        <div class="summary-meta-row"><span class="meta-k">Role</span><span class="meta-v">Lower bound</span></div>
-      </div>
-    </div>
+    <div class="chat-log" id="buddies-baseline"></div>
   </div>
 </div>
 
 <!-- =========== V1 ORCHESTRATED =========== -->
 <div class="scene" id="scene-v1orch">
-  <div class="arch-header">
-    <div class="arch-eyebrow">Architecture 2 of 6 · V1</div>
-    <h2 class="arch-title">Orchestrated (routing)</h2>
-    <p class="arch-desc">Classify the question, route to the domain specialist.</p>
+  <div class="view-tech">
+    <div class="arch-header">
+      <div class="arch-eyebrow">Architecture 2 of 7 &middot; V1</div>
+      <h2 class="arch-title">Orchestrated (routing)</h2>
+      <p class="arch-desc">Classify the question, route to the domain specialist.</p>
+    </div>
+    <div class="arch-workspace">
+      <div class="arch-diagram">
+        <div class="question-display" id="v1o-q"><div class="q-label">Question</div><div id="v1o-qt">&#8212;</div></div>
+        <div class="arrow-down"></div>
+        <div class="model-box" style="min-width: 260px;">
+          <div class="m-label">Classifier</div>
+          <div class="m-name">Domain Router</div>
+          <div class="m-size">math &middot; code &middot; general</div>
+        </div>
+        <div class="arrow-down"></div>
+        <div class="parallel-row">
+          <div class="model-box" id="v1o-math"><div class="m-label">Math</div><div class="m-name">Qwen3-32B</div><div class="m-size">32B &middot; Groq</div></div>
+          <div class="model-box" id="v1o-code"><div class="m-label">Code</div><div class="m-name">Llama-4-Scout</div><div class="m-size">17B &middot; Groq</div></div>
+          <div class="model-box" id="v1o-gen"><div class="m-label">General</div><div class="m-name">Llama-3.3-70B</div><div class="m-size">70B &middot; Groq</div></div>
+        </div>
+        <div class="arrow-down"></div>
+        <div class="answer-display" id="v1o-a"><div class="answer-label">Answer</div><span class="answer-value">&#8212;</span></div>
+      </div>
+      <div class="arch-summary">
+        <div class="summary-label">Benchmark Results</div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">76%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="76"></div></div></div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">70%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="70"></div></div></div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">93%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="93"></div></div></div>
+        <div class="summary-divider"></div>
+        <div class="summary-meta">
+          <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v">100%</span></div>
+          <div class="summary-meta-row"><span class="meta-k">Role</span><span class="meta-v">Routing only</span></div>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="arch-workspace">
-    <div class="arch-diagram">
-      <div class="question-display" id="v1o-q"><div class="q-label">Question</div><div id="v1o-qt">—</div></div>
-      <div class="arrow-down"></div>
-      <div class="model-box" style="min-width: 260px;">
-        <div class="m-label">Classifier</div>
-        <div class="m-name">Domain Router</div>
-        <div class="m-size">math · code · general</div>
-      </div>
-      <div class="arrow-down"></div>
-      <div class="parallel-row">
-        <div class="model-box" id="v1o-math"><div class="m-label">Math</div><div class="m-name">Qwen3-32B</div><div class="m-size">32B · Groq</div></div>
-        <div class="model-box" id="v1o-code"><div class="m-label">Code</div><div class="m-name">Llama-4-Scout</div><div class="m-size">17B · Groq</div></div>
-        <div class="model-box" id="v1o-gen"><div class="m-label">General</div><div class="m-name">Llama-3.3-70B</div><div class="m-size">70B · Groq</div></div>
-      </div>
-      <div class="arrow-down"></div>
-      <div class="answer-display" id="v1o-a"><div class="answer-label">Answer</div><span class="answer-value">—</span></div>
+  <div class="view-buddies">
+    <div class="buddies-header">
+      <div class="buddies-eyebrow">Scene 3 &middot; Architecture 2 of 7</div>
+      <h2 class="buddies-title">The right tool for the job.</h2>
+      <p class="buddies-desc">A router classifies each question and dispatches to the domain specialist.</p>
     </div>
-    <div class="arch-summary">
-      <div class="summary-label">Benchmark Results</div>
-      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">76%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="76"></div></div></div>
-      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">70%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="70"></div></div></div>
-      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">93%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="93"></div></div></div>
-      <div class="summary-divider"></div>
-      <div class="summary-meta">
-        <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v">100%</span></div>
-        <div class="summary-meta-row"><span class="meta-k">Role</span><span class="meta-v">Routing only</span></div>
-      </div>
-    </div>
+    <div class="chat-log" id="buddies-v1orch"></div>
   </div>
 </div>
 
 <!-- =========== V1 HYBRID =========== -->
 <div class="scene" id="scene-v1hyb">
-  <div class="arch-header">
-    <div class="arch-eyebrow">Architecture 3 of 6 · V1</div>
-    <h2 class="arch-title">Hybrid — Mixture of Agents</h2>
-    <p class="arch-desc">Math questions fan out to 3 proposers; a 235B aggregator synthesizes.</p>
+  <div class="view-tech">
+    <div class="arch-header">
+      <div class="arch-eyebrow">Architecture 3 of 7 &middot; V1</div>
+      <h2 class="arch-title">Hybrid &mdash; Mixture of Agents</h2>
+      <p class="arch-desc">Math questions fan out to 3 proposers; a 235B aggregator synthesizes.</p>
+    </div>
+    <div class="arch-workspace">
+      <div class="arch-diagram">
+        <div class="question-display" id="v1h-q"><div class="q-label">Question</div><div id="v1h-qt">&#8212;</div></div>
+        <div class="arrow-down"></div>
+        <div class="parallel-row">
+          <div class="model-box" id="v1h-p1"><div class="m-label">Proposer</div><div class="m-name">Qwen3-32B</div><div class="m-size">32B</div></div>
+          <div class="model-box" id="v1h-p2"><div class="m-label">Proposer</div><div class="m-name">Llama-3.3-70B</div><div class="m-size">70B</div></div>
+          <div class="model-box" id="v1h-p3"><div class="m-label">Proposer</div><div class="m-name">Llama-3.1-8B</div><div class="m-size">8B</div></div>
+        </div>
+        <div class="arrow-down"></div>
+        <div class="model-box senior" id="v1h-agg" style="min-width: 280px;">
+          <div class="m-label">Aggregator</div>
+          <div class="m-name">Qwen3-235B</div>
+          <div class="m-size">235B &middot; Cerebras</div>
+        </div>
+        <div class="arrow-down"></div>
+        <div class="answer-display" id="v1h-a"><div class="answer-label">Answer</div><span class="answer-value">&#8212;</span></div>
+      </div>
+      <div class="arch-summary">
+        <div class="summary-label">Benchmark Results</div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">76%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="76"></div></div></div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">97%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="97"></div></div></div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">97%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="97"></div></div></div>
+        <div class="summary-divider"></div>
+        <div class="summary-meta">
+          <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v">100%</span></div>
+          <div class="summary-meta-row"><span class="meta-k">Role</span><span class="meta-v">Uses ceiling every query</span></div>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="arch-workspace">
-    <div class="arch-diagram">
-      <div class="question-display" id="v1h-q"><div class="q-label">Question</div><div id="v1h-qt">—</div></div>
-      <div class="arrow-down"></div>
-      <div class="parallel-row">
-        <div class="model-box" id="v1h-p1"><div class="m-label">Proposer</div><div class="m-name">Qwen3-32B</div><div class="m-size">32B</div></div>
-        <div class="model-box" id="v1h-p2"><div class="m-label">Proposer</div><div class="m-name">Llama-3.3-70B</div><div class="m-size">70B</div></div>
-        <div class="model-box" id="v1h-p3"><div class="m-label">Proposer</div><div class="m-name">Llama-3.1-8B</div><div class="m-size">8B</div></div>
-      </div>
-      <div class="arrow-down"></div>
-      <div class="model-box senior" id="v1h-agg" style="min-width: 280px;">
-        <div class="m-label">Aggregator</div>
-        <div class="m-name">Qwen3-235B</div>
-        <div class="m-size">235B · Cerebras</div>
-      </div>
-      <div class="arrow-down"></div>
-      <div class="answer-display" id="v1h-a"><div class="answer-label">Answer</div><span class="answer-value">—</span></div>
+  <div class="view-buddies">
+    <div class="buddies-header">
+      <div class="buddies-eyebrow">Scene 4 &middot; Architecture 3 of 7</div>
+      <h2 class="buddies-title">Three heads, one judge.</h2>
+      <p class="buddies-desc">Three proposers answer independently. Professor Q synthesizes the best answer.</p>
     </div>
-    <div class="arch-summary">
-      <div class="summary-label">Benchmark Results</div>
-      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">76%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="76"></div></div></div>
-      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">97%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="97"></div></div></div>
-      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">97%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="97"></div></div></div>
-      <div class="summary-divider"></div>
-      <div class="summary-meta">
-        <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v">100%</span></div>
-        <div class="summary-meta-row"><span class="meta-k">Role</span><span class="meta-v">Uses ceiling every query</span></div>
-      </div>
-    </div>
+    <div class="chat-log" id="buddies-v1hyb"></div>
   </div>
 </div>
 
 <!-- =========== V2-A SELECTIVE REVIEW =========== -->
 <div class="scene" id="scene-v2a">
-  <div class="arch-header">
-    <div class="arch-eyebrow">Architecture 4 of 6 · V2-A ⭐</div>
-    <h2 class="arch-title">Selective Review (the original idea)</h2>
-    <p class="arch-desc">Specialist answers twice. Only if it disagrees with itself, senior reviewer intervenes.</p>
-  </div>
-  <div class="arch-workspace">
-    <div class="arch-diagram">
-      <div class="question-display" id="v2a-q"><div class="q-label">Question</div><div id="v2a-qt">—</div></div>
-      <div class="arrow-down"></div>
-      <div class="sc-group">
-        <div class="parallel-row">
-          <div class="model-box" id="v2a-s1"><div class="m-label">Sample 1</div><div class="m-name">Domain specialist</div><div class="m-size">temp = 0.0</div></div>
-          <div class="model-box" id="v2a-s2"><div class="m-label">Sample 2</div><div class="m-name">Domain specialist</div><div class="m-size">temp = 0.5</div></div>
+  <div class="view-tech">
+    <div class="arch-header">
+      <div class="arch-eyebrow">Architecture 4 of 7 &middot; V2-A &#11088;</div>
+      <h2 class="arch-title">Selective Review (the original idea)</h2>
+      <p class="arch-desc">Specialist answers twice. Only if it disagrees with itself, senior reviewer intervenes.</p>
+    </div>
+    <div class="arch-workspace">
+      <div class="arch-diagram">
+        <div class="question-display" id="v2a-q"><div class="q-label">Question</div><div id="v2a-qt">&#8212;</div></div>
+        <div class="arrow-down"></div>
+        <div class="sc-group">
+          <div class="parallel-row">
+            <div class="model-box" id="v2a-s1"><div class="m-label">Sample 1</div><div class="m-name">Domain specialist</div><div class="m-size">temp = 0.0</div></div>
+            <div class="model-box" id="v2a-s2"><div class="m-label">Sample 2</div><div class="m-name">Domain specialist</div><div class="m-size">temp = 0.5</div></div>
+          </div>
+        </div>
+        <div class="arrow-down"></div>
+        <div class="decision" id="v2a-dec">self-consistency check &middot; do samples agree?</div>
+        <div class="arrow-down"></div>
+        <div class="model-box senior" id="v2a-senior" style="min-width: 280px;">
+          <div class="m-label">Senior (if disagree)</div>
+          <div class="m-name">Qwen3-235B</div>
+          <div class="m-size">235B &middot; called on 11%</div>
+        </div>
+        <div class="arrow-down"></div>
+        <div class="answer-display" id="v2a-a"><div class="answer-label">Answer</div><span class="answer-value">&#8212;</span></div>
+      </div>
+      <div class="arch-summary">
+        <div class="summary-label">Benchmark Results</div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">66%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="66"></div></div></div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">87%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="87"></div></div></div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">93%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="93"></div></div></div>
+        <div class="summary-divider"></div>
+        <div class="summary-meta">
+          <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v" style="color: var(--cyan)">11% &#11088;</span></div>
+          <div class="summary-meta-row"><span class="meta-k">Role</span><span class="meta-v">Efficient sweet spot</span></div>
         </div>
       </div>
-      <div class="arrow-down"></div>
-      <div class="decision" id="v2a-dec">self-consistency check · do samples agree?</div>
-      <div class="arrow-down"></div>
-      <div class="model-box senior" id="v2a-senior" style="min-width: 280px;">
-        <div class="m-label">Senior (if disagree)</div>
-        <div class="m-name">Qwen3-235B</div>
-        <div class="m-size">235B · called on 11%</div>
-      </div>
-      <div class="arrow-down"></div>
-      <div class="answer-display" id="v2a-a"><div class="answer-label">Answer</div><span class="answer-value">—</span></div>
     </div>
-    <div class="arch-summary">
-      <div class="summary-label">Benchmark Results</div>
-      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">66%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="66"></div></div></div>
-      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">87%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="87"></div></div></div>
-      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">93%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="93"></div></div></div>
-      <div class="summary-divider"></div>
-      <div class="summary-meta">
-        <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v" style="color: var(--cyan)">11% ⭐</span></div>
-        <div class="summary-meta-row"><span class="meta-k">Role</span><span class="meta-v">Efficient sweet spot</span></div>
-      </div>
+  </div>
+  <div class="view-buddies">
+    <div class="buddies-header">
+      <div class="buddies-eyebrow">Scene 5 &middot; Architecture 4 of 7</div>
+      <h2 class="buddies-title">Check yourself before you wreck yourself.</h2>
+      <p class="buddies-desc">Qwenny answers twice at different temperatures. Disagree? Call Prof Q. Agree? Ship it.</p>
     </div>
+    <div class="chat-log" id="buddies-v2a"></div>
   </div>
 </div>
 
 <!-- =========== V2-B CASCADE =========== -->
 <div class="scene" id="scene-v2b">
-  <div class="arch-header">
-    <div class="arch-eyebrow">Architecture 5 of 6 · V2-B</div>
-    <h2 class="arch-title">Cascade — 3-tier</h2>
-    <p class="arch-desc">Laborer → Specialist → Senior. Only escalate on disagreement at each tier.</p>
-  </div>
-  <div class="arch-workspace">
-    <div class="arch-diagram">
-      <div class="question-display" id="v2b-q"><div class="q-label">Question</div><div id="v2b-qt">—</div></div>
-      <div class="arrow-down"></div>
-      <div class="model-box laborer" id="v2b-lab" style="min-width: 280px;"><div class="m-label">Tier 1 · Laborer</div><div class="m-name">Llama-3.1-8B</div><div class="m-size">8B · handles 100%</div></div>
-      <div class="arrow-down"></div>
-      <div class="model-box spec-v2b" id="v2b-spec" style="min-width: 280px;"><div class="m-label">Tier 2 · Specialist</div><div class="m-name">Domain-matched</div><div class="m-size">17–70B · called on 18%</div></div>
-      <div class="arrow-down"></div>
-      <div class="model-box senior" id="v2b-sen" style="min-width: 280px;"><div class="m-label">Tier 3 · Senior</div><div class="m-name">Qwen3-235B</div><div class="m-size">235B · called on 7%</div></div>
-      <div class="arrow-down"></div>
-      <div class="answer-display" id="v2b-a"><div class="answer-label">Answer</div><span class="answer-value">—</span></div>
+  <div class="view-tech">
+    <div class="arch-header">
+      <div class="arch-eyebrow">Architecture 5 of 7 &middot; V2-B</div>
+      <h2 class="arch-title">Cascade &mdash; 3-tier</h2>
+      <p class="arch-desc">Laborer &rarr; Specialist &rarr; Senior. Only escalate on disagreement at each tier.</p>
     </div>
-    <div class="arch-summary">
-      <div class="summary-label">Benchmark Results</div>
-      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">66%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="66"></div></div></div>
-      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">83%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="83"></div></div></div>
-      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">77%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="77"></div></div></div>
-      <div class="summary-divider"></div>
-      <div class="summary-meta">
-        <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v" style="color: var(--yellow)">7%</span></div>
-        <div class="summary-meta-row"><span class="meta-k">Caveat</span><span class="meta-v" style="color: var(--red)">ARC weakness</span></div>
+    <div class="arch-workspace">
+      <div class="arch-diagram">
+        <div class="question-display" id="v2b-q"><div class="q-label">Question</div><div id="v2b-qt">&#8212;</div></div>
+        <div class="arrow-down"></div>
+        <div class="model-box laborer" id="v2b-lab" style="min-width: 280px;"><div class="m-label">Tier 1 &middot; Laborer</div><div class="m-name">Llama-3.1-8B</div><div class="m-size">8B &middot; handles 100%</div></div>
+        <div class="arrow-down"></div>
+        <div class="model-box spec-v2b" id="v2b-spec" style="min-width: 280px;"><div class="m-label">Tier 2 &middot; Specialist</div><div class="m-name">Domain-matched</div><div class="m-size">17&ndash;70B &middot; called on 18%</div></div>
+        <div class="arrow-down"></div>
+        <div class="model-box senior" id="v2b-sen" style="min-width: 280px;"><div class="m-label">Tier 3 &middot; Senior</div><div class="m-name">Qwen3-235B</div><div class="m-size">235B &middot; called on 7%</div></div>
+        <div class="arrow-down"></div>
+        <div class="answer-display" id="v2b-a"><div class="answer-label">Answer</div><span class="answer-value">&#8212;</span></div>
+      </div>
+      <div class="arch-summary">
+        <div class="summary-label">Benchmark Results</div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">66%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="66"></div></div></div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">83%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="83"></div></div></div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">77%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="77"></div></div></div>
+        <div class="summary-divider"></div>
+        <div class="summary-meta">
+          <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v" style="color: var(--yellow)">7%</span></div>
+          <div class="summary-meta-row"><span class="meta-k">Caveat</span><span class="meta-v" style="color: var(--red)">ARC weakness</span></div>
+        </div>
       </div>
     </div>
+  </div>
+  <div class="view-buddies">
+    <div class="buddies-header">
+      <div class="buddies-eyebrow">Scene 6 &middot; Architecture 5 of 7</div>
+      <h2 class="buddies-title">Climb the ladder.</h2>
+      <p class="buddies-desc">Luno tries first. Confident? Ship. Unsure? Escalate. But confident-and-wrong is the problem.</p>
+    </div>
+    <div class="chat-log" id="buddies-v2b"></div>
+  </div>
+</div>
+
+<!-- =========== V3 CROSS-MODEL CONSISTENCY =========== -->
+<div class="scene" id="scene-v3">
+  <div class="view-tech">
+    <div class="arch-header">
+      <div class="arch-eyebrow">Architecture 6 of 7 &middot; V3 &#11088;</div>
+      <h2 class="arch-title">Cross-Model Consistency</h2>
+      <p class="arch-desc">Two architecturally orthogonal models (Llama + Qwen) answer in parallel. Agreement = strong confidence. Disagreement = escalate.</p>
+    </div>
+    <div class="arch-workspace">
+      <div class="arch-diagram">
+        <div class="question-display" id="v3-q"><div class="q-label">Question</div><div id="v3-qt">&#8212;</div></div>
+        <div class="arrow-down"></div>
+        <div class="cm-group">
+          <div class="parallel-row">
+            <div class="model-box v3-a" id="v3-a"><div class="m-label">Model A &middot; Llama family</div><div class="m-name">Llama-3.3-70B</div><div class="m-size">70B &middot; temp=0</div></div>
+            <div class="model-box v3-b" id="v3-b"><div class="m-label">Model B &middot; Qwen family</div><div class="m-name">Qwen3-32B</div><div class="m-size">32B &middot; temp=0</div></div>
+          </div>
+        </div>
+        <div class="arrow-down"></div>
+        <div class="decision" id="v3-dec">do both models agree?</div>
+        <div class="arrow-down"></div>
+        <div class="model-box senior" id="v3-senior" style="min-width: 280px;">
+          <div class="m-label">Senior (if disagree)</div>
+          <div class="m-name">Qwen3-235B</div>
+          <div class="m-size">235B &middot; called on 73%</div>
+        </div>
+        <div class="arrow-down"></div>
+        <div class="answer-display" id="v3-a-display"><div class="answer-label">Answer</div><span class="answer-value">&#8212;</span></div>
+      </div>
+      <div class="arch-summary">
+        <div class="summary-label">Benchmark Results</div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">84%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="84"></div></div></div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">97%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="97"></div></div></div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">97%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="97"></div></div></div>
+        <div class="summary-divider"></div>
+        <div class="summary-meta">
+          <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v" style="color: #a78bfa">73%</span></div>
+          <div class="summary-meta-row"><span class="meta-k">Role</span><span class="meta-v">Near-ceiling accuracy</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="view-buddies">
+    <div class="buddies-header">
+      <div class="buddies-eyebrow">Scene 7 &middot; Architecture 6 of 7</div>
+      <h2 class="buddies-title">Two families, one truth.</h2>
+      <p class="buddies-desc">Leo (Llama) and Qwenny (Qwen) &mdash; different architectures, different training &mdash; answer in parallel. Agreement is hard to fake.</p>
+    </div>
+    <div class="chat-log" id="buddies-v3"></div>
   </div>
 </div>
 
 <!-- =========== 235B CEILING =========== -->
 <div class="scene" id="scene-ceiling">
-  <div class="arch-header">
-    <div class="arch-eyebrow">Architecture 6 of 6 · Ceiling</div>
-    <h2 class="arch-title">Qwen3-235B alone</h2>
-    <p class="arch-desc">The upper-bound baseline. Call the biggest model every time.</p>
+  <div class="view-tech">
+    <div class="arch-header">
+      <div class="arch-eyebrow">Architecture 7 of 7 &middot; Ceiling</div>
+      <h2 class="arch-title">Qwen3-235B alone</h2>
+      <p class="arch-desc">The upper-bound baseline. Call the biggest model every time.</p>
+    </div>
+    <div class="arch-workspace">
+      <div class="arch-diagram">
+        <div class="question-display" id="c-q"><div class="q-label">Question</div><div id="c-qt">&#8212;</div></div>
+        <div class="arrow-down"></div>
+        <div class="model-box senior" id="c-model" style="min-width: 340px; padding: 24px 28px;">
+          <div class="m-label">Ceiling Model</div>
+          <div class="m-name" style="font-size: 26px;">Qwen3-235B</div>
+          <div class="m-size">235B &middot; Cerebras &middot; 100% of calls</div>
+        </div>
+        <div class="arrow-down"></div>
+        <div class="answer-display" id="c-a"><div class="answer-label">Answer</div><span class="answer-value">&#8212;</span></div>
+      </div>
+      <div class="arch-summary">
+        <div class="summary-label">Benchmark Results</div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">92%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="92"></div></div></div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">100%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="100"></div></div></div>
+        <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">97%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="97"></div></div></div>
+        <div class="summary-divider"></div>
+        <div class="summary-meta">
+          <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v" style="color: var(--magenta)">100% (max)</span></div>
+          <div class="summary-meta-row"><span class="meta-k">Role</span><span class="meta-v">Upper bound</span></div>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="arch-workspace">
-    <div class="arch-diagram">
-      <div class="question-display" id="c-q"><div class="q-label">Question</div><div id="c-qt">—</div></div>
-      <div class="arrow-down"></div>
-      <div class="model-box senior" id="c-model" style="min-width: 340px; padding: 24px 28px;">
-        <div class="m-label">Ceiling Model</div>
-        <div class="m-name" style="font-size: 26px;">Qwen3-235B</div>
-        <div class="m-size">235B · Cerebras · 100% of calls</div>
-      </div>
-      <div class="arrow-down"></div>
-      <div class="answer-display" id="c-a"><div class="answer-label">Answer</div><span class="answer-value">—</span></div>
+  <div class="view-buddies">
+    <div class="buddies-header">
+      <div class="buddies-eyebrow">Scene 8 &middot; Architecture 7 of 7</div>
+      <h2 class="buddies-title">The professor handles everything.</h2>
+      <p class="buddies-desc">Peak accuracy. But Professor Q costs 14&times; more than the efficient configs.</p>
     </div>
-    <div class="arch-summary">
-      <div class="summary-label">Benchmark Results</div>
-      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">92%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="92"></div></div></div>
-      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">100%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="100"></div></div></div>
-      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">97%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="97"></div></div></div>
-      <div class="summary-divider"></div>
-      <div class="summary-meta">
-        <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v" style="color: var(--magenta)">100% (max)</span></div>
-        <div class="summary-meta-row"><span class="meta-k">Role</span><span class="meta-v">Upper bound</span></div>
-      </div>
-    </div>
+    <div class="chat-log" id="buddies-ceiling"></div>
   </div>
 </div>
 
 <!-- =========== FINAL =========== -->
 <div class="scene" id="scene-final">
-  <div class="final-content">
-    <h1 class="final-title">The Pareto Frontier<br>of <span class="accent">cost vs accuracy</span></h1>
-    <p class="final-sub">Average accuracy across MMLU + GSM8K + ARC</p>
-    <div class="pareto-chart">
-      <div class="pareto-row">
-        <div class="pareto-name">Qwen 7B baseline</div>
-        <div class="pareto-track"><div class="pareto-fill baseline" data-val="60"></div></div>
-        <div class="pareto-avg">60%</div>
+  <div class="view-tech">
+    <div class="final-content">
+      <h1 class="final-title">The Pareto Frontier<br>of <span class="accent">cost vs accuracy</span></h1>
+      <p class="final-sub">Average accuracy across MMLU + GSM8K + ARC</p>
+      <div class="pareto-chart">
+        <div class="pareto-row">
+          <div class="pareto-name">Qwen 7B baseline</div>
+          <div class="pareto-track"><div class="pareto-fill baseline" data-val="60"></div></div>
+          <div class="pareto-avg">60%</div>
+        </div>
+        <div class="pareto-row">
+          <div class="pareto-name">V2-B Cascade</div>
+          <div class="pareto-track"><div class="pareto-fill v2b" data-val="75"></div></div>
+          <div class="pareto-avg">75%</div>
+        </div>
+        <div class="pareto-row">
+          <div class="pareto-name">V1 Orchestrated</div>
+          <div class="pareto-track"><div class="pareto-fill v1" data-val="80"></div></div>
+          <div class="pareto-avg">80%</div>
+        </div>
+        <div class="pareto-row">
+          <div class="pareto-name winner">V2-A Selective &#11088;</div>
+          <div class="pareto-track"><div class="pareto-fill v2a" data-val="82"></div></div>
+          <div class="pareto-avg">82%</div>
+        </div>
+        <div class="pareto-row">
+          <div class="pareto-name">V1 Hybrid MoA</div>
+          <div class="pareto-track"><div class="pareto-fill v1" data-val="90"></div></div>
+          <div class="pareto-avg">90%</div>
+        </div>
+        <div class="pareto-row">
+          <div class="pareto-name winner" style="color: #a78bfa;">V3 Cross-Model &#11088;</div>
+          <div class="pareto-track"><div class="pareto-fill v3" data-val="92"></div></div>
+          <div class="pareto-avg">92%</div>
+        </div>
+        <div class="pareto-row">
+          <div class="pareto-name ceiling">Qwen3-235B alone</div>
+          <div class="pareto-track"><div class="pareto-fill ceiling" data-val="96"></div></div>
+          <div class="pareto-avg">96%</div>
+        </div>
       </div>
-      <div class="pareto-row">
-        <div class="pareto-name">V2-B Cascade</div>
-        <div class="pareto-track"><div class="pareto-fill v2b" data-val="75"></div></div>
-        <div class="pareto-avg">75%</div>
+      <div class="pareto-footnote">
+        <span class="hi-a">V2-A</span> for cost &middot; <span class="hi-c" style="color: #a78bfa;">V3</span> for accuracy.<br>
+        Both beat single-model baselines on the Pareto frontier.
       </div>
-      <div class="pareto-row">
-        <div class="pareto-name winner">V2-A Selective ⭐</div>
-        <div class="pareto-track"><div class="pareto-fill v2a" data-val="82"></div></div>
-        <div class="pareto-avg">82%</div>
-      </div>
-      <div class="pareto-row">
-        <div class="pareto-name">V1 Orchestrated</div>
-        <div class="pareto-track"><div class="pareto-fill v1" data-val="80"></div></div>
-        <div class="pareto-avg">80%</div>
-      </div>
-      <div class="pareto-row">
-        <div class="pareto-name">V1 Hybrid MoA</div>
-        <div class="pareto-track"><div class="pareto-fill v1" data-val="90"></div></div>
-        <div class="pareto-avg">90%</div>
-      </div>
-      <div class="pareto-row">
-        <div class="pareto-name ceiling">Qwen3-235B alone</div>
-        <div class="pareto-track"><div class="pareto-fill ceiling" data-val="96"></div></div>
-        <div class="pareto-avg">96%</div>
-      </div>
+      <div class="gh-link"><span class="arrow">&rarr;</span>github.com/Arun07AK/adaptive-model-orchestrator</div>
     </div>
-    <div class="pareto-footnote">
-      <span class="hi-a">V2-A</span> reaches within <span class="hi-c">14 points</span> of the 235B ceiling<br>
-      while calling the ceiling model on only 11% of queries.
+  </div>
+  <div class="view-buddies">
+    <div class="buddies-header">
+      <div class="buddies-eyebrow">Scene 9 &middot; Takeaway</div>
+      <h2 class="buddies-title">Two winners.</h2>
+      <p class="buddies-desc">Different workflows, different trade-offs.</p>
     </div>
-    <div class="gh-link"><span class="arrow">→</span>github.com/Arun07AK/adaptive-model-orchestrator</div>
+    <div class="chat-log" id="buddies-final"></div>
   </div>
 </div>
 
@@ -1053,11 +1484,12 @@ const QUESTIONS = [
     text: 'Which vitamin is fat-soluble?  A) Vitamin C  B) B12  C) Vitamin D  D) B1',
     correct: 'C',
     results: {
-      baseline: 'B',    // wrong → Qwen 7B gets this wrong sometimes
+      baseline: 'B',    // wrong — Qwen 7B gets this wrong
       v1orch:   'C',    // correct
       v1hyb:    'C',    // correct
       v2a:      'C',    // correct
       v2b:      'C',    // correct
+      v3:       'C',    // correct (Prof Q called on MMLU: Leo+Qwenny disagree)
       ceiling:  'C',    // correct
     }
   },
@@ -1070,7 +1502,8 @@ const QUESTIONS = [
       v1orch:   '72',   // correct (routes to Qwen3-32B math specialist)
       v1hyb:    '72',   // correct (MoA aggregates to right answer)
       v2a:      '72',   // correct
-      v2b:      '72',   // correct (laborer may get this; if not, escalates)
+      v2b:      '72',   // correct (escalates to Qwenny)
+      v3:       '72',   // correct (Leo+Qwenny agree)
       ceiling:  '72',   // correct
     }
   },
@@ -1084,6 +1517,7 @@ const QUESTIONS = [
       v1hyb:    'A',    // correct
       v2a:      'A',    // correct
       v2b:      'B',    // WRONG — showcases V2-B's ARC failure mode
+      v3:       'A',    // correct (Leo+Qwenny agree)
       ceiling:  'A',    // correct
     }
   },
@@ -1091,14 +1525,15 @@ const QUESTIONS = [
 
 // ============== SCENES ==============
 const SCENES = [
-  { id: 'intro',    name: 'Intro',            duration: 5000,  run: runIntro },
-  { id: 'baseline', name: 'Baseline',         duration: 17000, run: runBaseline },
-  { id: 'v1orch',   name: 'V1 Orchestrated',  duration: 17000, run: runV1Orch },
-  { id: 'v1hyb',    name: 'V1 Hybrid (MoA)',  duration: 17000, run: runV1Hyb },
-  { id: 'v2a',      name: 'V2-A ⭐',          duration: 17000, run: runV2a },
-  { id: 'v2b',      name: 'V2-B Cascade',     duration: 17000, run: runV2b },
-  { id: 'ceiling',  name: '235B Ceiling',     duration: 17000, run: runCeiling },
-  { id: 'final',    name: 'Pareto Frontier',  duration: 12000, run: runFinal },
+  { id: 'intro',    name: 'Intro',              duration: 5000,  run: runIntro },
+  { id: 'baseline', name: 'Baseline',           duration: 17000, run: runBaseline },
+  { id: 'v1orch',   name: 'V1 Orchestrated',    duration: 17000, run: runV1Orch },
+  { id: 'v1hyb',    name: 'V1 Hybrid (MoA)',    duration: 17000, run: runV1Hyb },
+  { id: 'v2a',      name: 'V2-A \u2B50',        duration: 17000, run: runV2a },
+  { id: 'v2b',      name: 'V2-B Cascade',       duration: 17000, run: runV2b },
+  { id: 'v3',       name: 'V3 Cross-Model \u2B50', duration: 17000, run: runV3Scene },
+  { id: 'ceiling',  name: '235B Ceiling',       duration: 17000, run: runCeiling },
+  { id: 'final',    name: 'Pareto Frontier',    duration: 14000, run: runFinal },
 ];
 
 let currentScene = 0;
@@ -1119,6 +1554,19 @@ function clearAllTimers() {
   activeTimers = [];
   if (sceneTimeout) clearTimeout(sceneTimeout);
   if (progressInterval) clearInterval(progressInterval);
+}
+
+function setMode(mode) {
+  document.body.classList.remove('mode-tech', 'mode-buddies');
+  document.body.classList.add('mode-' + mode);
+  document.querySelectorAll('.mode-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  setActive(currentScene);
+}
+
+function isBuddiesMode() {
+  return document.body.classList.contains('mode-buddies');
 }
 
 function setActive(sceneIdx) {
@@ -1193,285 +1641,505 @@ function resetSceneElements(sceneId) {
     a.classList.remove('correct', 'wrong');
     const val = a.querySelector('.answer-value');
     const icon = a.querySelector('.answer-icon');
-    if (val) val.textContent = '—';
+    if (val) val.textContent = '\u2014';
     if (icon) icon.remove();
   });
   // Reset question text displays
   const qt = document.querySelectorAll('[id$="-qt"]');
-  qt.forEach(el => el.textContent = '—');
+  qt.forEach(el => el.textContent = '\u2014');
+  // Reset decision boxes
+  document.querySelectorAll('.decision').forEach(d => {
+    d.classList.remove('agree');
+  });
+}
+
+// ============== BUDDIES HELPERS ==============
+
+function clearChat(id) {
+  var el = document.getElementById(id);
+  if (el) { while (el.firstChild) { el.removeChild(el.firstChild); } }
+}
+
+function addBubble(container, from, name, text, model, isRight) {
+  if (!container) return;
+  model = model || null;
+  isRight = isRight || false;
+  var bubble = document.createElement('div');
+  bubble.className = 'bubble' + (isRight ? ' right' : '');
+  bubble.dataset.from = from;
+
+  var avatarDiv = document.createElement('div');
+  avatarDiv.className = 'bubble-avatar';
+  avatarDiv.textContent = name[0];
+
+  var bodyDiv = document.createElement('div');
+  bodyDiv.className = 'bubble-body';
+
+  var nameDiv = document.createElement('div');
+  nameDiv.className = 'bubble-name';
+  nameDiv.textContent = name;
+
+  var textDiv = document.createElement('div');
+  textDiv.className = 'bubble-text';
+  textDiv.textContent = text;
+
+  bodyDiv.appendChild(nameDiv);
+  bodyDiv.appendChild(textDiv);
+
+  if (model) {
+    var modelDiv = document.createElement('div');
+    modelDiv.className = 'bubble-model';
+    modelDiv.textContent = model;
+    bodyDiv.appendChild(modelDiv);
+  }
+
+  bubble.appendChild(avatarDiv);
+  bubble.appendChild(bodyDiv);
+  container.appendChild(bubble);
+
+  setTimeout(function() { bubble.classList.add('show'); }, 50);
+  container.scrollTop = container.scrollHeight;
 }
 
 // ============== SCENE RUNNERS ==============
 
 function runIntro() {
-  // Animate counter pulses
-  // (content is static; the eye moves to stats via CSS)
+  // Static content — buddy grid visible in buddies mode automatically
 }
 
 function runBaseline() {
-  // Animate summary bars to fill
-  schedule(() => animateBars('#scene-baseline'), 200);
-
-  const id = 'bl';
-  const delays = [0, 5000, 10000]; // start of each question
-  QUESTIONS.forEach((q, i) => {
-    schedule(() => runSimpleFlow(id, q, 'baseline'), delays[i]);
+  if (isBuddiesMode()) { runBaselineBuddies(); return; }
+  schedule(function() { animateBars('#scene-baseline .view-tech'); }, 200);
+  var delays = [0, 5000, 10000];
+  QUESTIONS.forEach(function(q, i) {
+    schedule(function() { runSimpleFlow('bl', q, 'baseline'); }, delays[i]);
   });
+}
+
+function runBaselineBuddies() {
+  clearChat('buddies-baseline');
+  var log = document.getElementById('buddies-baseline');
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 1: which vitamin is fat-soluble?'); }, 400);
+  schedule(function() { addBubble(log, 'solo', 'Solo', 'Hmm, I think it might be B12... Answer: B.', 'Qwen 2.5 7B', true); }, 1400);
+  schedule(function() { addBubble(log, 'system', 'System', '\u2717 Wrong. Correct: C (Vitamin D)'); }, 2400);
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 2: Natalia sold 48 clips in April, half as many in May. Total?'); }, 4200);
+  schedule(function() { addBubble(log, 'solo', 'Solo', '48 friends... half is... 48? Answer: 48.', 'Qwen 2.5 7B', true); }, 5300);
+  schedule(function() { addBubble(log, 'system', 'System', '\u2717 Wrong. Should be 48 + 24 = 72'); }, 6300);
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 3: which surface produces most heat when rubbing hands?'); }, 8400);
+  schedule(function() { addBubble(log, 'solo', 'Solo', 'Dry palms have the most friction. Answer: A.', 'Qwen 2.5 7B', true); }, 9400);
+  schedule(function() { addBubble(log, 'system', 'System', '\u2713 Correct. 1/3 questions right on hard ones.'); }, 10400);
 }
 
 function runV1Orch() {
-  schedule(() => animateBars('#scene-v1orch'), 200);
-
-  const delays = [0, 5000, 10000];
-  QUESTIONS.forEach((q, i) => {
-    schedule(() => runV1OrchFlow(q), delays[i]);
+  if (isBuddiesMode()) { runV1OrchBuddies(); return; }
+  schedule(function() { animateBars('#scene-v1orch .view-tech'); }, 200);
+  var delays = [0, 5000, 10000];
+  QUESTIONS.forEach(function(q, i) {
+    schedule(function() { runV1OrchFlow(q); }, delays[i]);
   });
+}
+
+function runV1OrchBuddies() {
+  clearChat('buddies-v1orch');
+  var log = document.getElementById('buddies-v1orch');
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 1 [MMLU] \u2192 classifying... type: GENERAL \u2192 routing to Leo'); }, 400);
+  schedule(function() { addBubble(log, 'leo', 'Leo', 'Vitamin D is the fat-soluble one. A, C, D, K are fat-soluble. Answer: C.', 'Llama-3.3-70B', true); }, 1500);
+  schedule(function() { addBubble(log, 'system', 'System', '\u2713 Correct'); }, 2500);
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 2 [GSM8K] \u2192 classifying... type: MATH \u2192 routing to Qwenny'); }, 4200);
+  schedule(function() { addBubble(log, 'qwenny', 'Qwenny', '48 \u00d7 0.5 = 24. Total: 48 + 24 = 72. Answer: 72.', 'Qwen3-32B', true); }, 5300);
+  schedule(function() { addBubble(log, 'system', 'System', '\u2713 Correct'); }, 6200);
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 3 [ARC] \u2192 classifying... type: GENERAL \u2192 routing to Leo'); }, 8400);
+  schedule(function() { addBubble(log, 'leo', 'Leo', 'Dry surfaces have the highest friction coefficient. Answer: A.', 'Llama-3.3-70B', true); }, 9400);
+  schedule(function() { addBubble(log, 'system', 'System', '\u2713 Correct. Routing wins on specialization.'); }, 10400);
 }
 
 function runV1Hyb() {
-  schedule(() => animateBars('#scene-v1hyb'), 200);
-
-  const delays = [0, 5000, 10000];
-  QUESTIONS.forEach((q, i) => {
-    schedule(() => runV1HybFlow(q), delays[i]);
+  if (isBuddiesMode()) { runV1HybBuddies(); return; }
+  schedule(function() { animateBars('#scene-v1hyb .view-tech'); }, 200);
+  var delays = [0, 5000, 10000];
+  QUESTIONS.forEach(function(q, i) {
+    schedule(function() { runV1HybFlow(q); }, delays[i]);
   });
+}
+
+function runV1HybBuddies() {
+  clearChat('buddies-v1hyb');
+  var log = document.getElementById('buddies-v1hyb');
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 1: all three proposers \u2014 go!'); }, 400);
+  schedule(function() { addBubble(log, 'qwenny', 'Qwenny', 'C \u2014 Vitamin D.', 'Qwen3-32B'); }, 1200);
+  schedule(function() { addBubble(log, 'leo', 'Leo', 'C \u2014 fat-soluble vitamins are A, D, E, K.', 'Llama-3.3-70B', true); }, 1800);
+  schedule(function() { addBubble(log, 'luno', 'Luno', "C, I think? Vitamin D sounds right.", 'Llama-3.1-8B'); }, 2400);
+  schedule(function() { addBubble(log, 'profq', 'Professor Q', 'All three converge on C. Final answer: C.', 'Qwen3-235B', true); }, 3400);
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 2: math \u2014 proposers assemble!'); }, 5500);
+  schedule(function() { addBubble(log, 'qwenny', 'Qwenny', '48 + 24 = 72.', 'Qwen3-32B'); }, 6300);
+  schedule(function() { addBubble(log, 'leo', 'Leo', '72 total.', 'Llama-3.3-70B', true); }, 6900);
+  schedule(function() { addBubble(log, 'luno', 'Luno', "Maybe 72? I'm ~80% sure.", 'Llama-3.1-8B'); }, 7500);
+  schedule(function() { addBubble(log, 'profq', 'Professor Q', 'Unanimous: 72. Final answer: 72.', 'Qwen3-235B', true); }, 8500);
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 3: ARC challenge'); }, 10800);
+  schedule(function() { addBubble(log, 'qwenny', 'Qwenny', 'A \u2014 dry.', 'Qwen3-32B'); }, 11500);
+  schedule(function() { addBubble(log, 'leo', 'Leo', 'A \u2014 friction is highest on dry surfaces.', 'Llama-3.3-70B', true); }, 12100);
+  schedule(function() { addBubble(log, 'profq', 'Professor Q', 'Consensus: A. Final answer: A. \u2713', 'Qwen3-235B', true); }, 13200);
 }
 
 function runV2a() {
-  schedule(() => animateBars('#scene-v2a'), 200);
-
-  const delays = [0, 5000, 10000];
-  QUESTIONS.forEach((q, i) => {
-    schedule(() => runV2aFlow(q), delays[i]);
+  if (isBuddiesMode()) { runV2aBuddies(); return; }
+  schedule(function() { animateBars('#scene-v2a .view-tech'); }, 200);
+  var delays = [0, 5000, 10000];
+  QUESTIONS.forEach(function(q, i) {
+    schedule(function() { runV2aFlow(q); }, delays[i]);
   });
+}
+
+function runV2aBuddies() {
+  clearChat('buddies-v2a');
+  var log = document.getElementById('buddies-v2a');
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 1 [MMLU] \u2192 Qwenny, two attempts'); }, 400);
+  schedule(function() { addBubble(log, 'qwenny', 'Qwenny', 'Attempt 1 (temp=0): Vitamin D is fat-soluble. Answer: C.', 'Qwen3-32B'); }, 1300);
+  schedule(function() { addBubble(log, 'qwenny', 'Qwenny', 'Attempt 2 (temp=0.5): Still C. Confident.', 'Qwen3-32B'); }, 2200);
+  schedule(function() { addBubble(log, 'system', 'System', '\u2713 Both attempts agree. High confidence. Return C.'); }, 3100);
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 2 [GSM8K] \u2192 Qwenny, two attempts'); }, 5200);
+  schedule(function() { addBubble(log, 'qwenny', 'Qwenny', 'Attempt 1: 48 + 24 = 72.', 'Qwen3-32B'); }, 6100);
+  schedule(function() { addBubble(log, 'qwenny', 'Qwenny', 'Attempt 2: Wait, let me recalc... 60?', 'Qwen3-32B'); }, 7000);
+  schedule(function() { addBubble(log, 'system', 'System', '\u2717 Attempts disagree! Calling Professor Q...'); }, 7900);
+  schedule(function() { addBubble(log, 'profq', 'Professor Q', '48 \u00d7 0.5 = 24. 48 + 24 = 72. Answer: 72. \u2713', 'Qwen3-235B', true); }, 9000);
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 3 [ARC] \u2192 Qwenny, two attempts'); }, 11300);
+  schedule(function() { addBubble(log, 'qwenny', 'Qwenny', 'Attempt 1: Dry palms. Answer: A.', 'Qwen3-32B'); }, 12100);
+  schedule(function() { addBubble(log, 'qwenny', 'Qwenny', 'Attempt 2: A again. Same answer.', 'Qwen3-32B'); }, 13000);
+  schedule(function() { addBubble(log, 'system', 'System', '\u2713 Agreed. Return A. Only 11% of queries reach Prof Q.'); }, 13900);
 }
 
 function runV2b() {
-  schedule(() => animateBars('#scene-v2b'), 200);
-
-  const delays = [0, 5000, 10000];
-  QUESTIONS.forEach((q, i) => {
-    schedule(() => runV2bFlow(q), delays[i]);
+  if (isBuddiesMode()) { runV2bBuddies(); return; }
+  schedule(function() { animateBars('#scene-v2b .view-tech'); }, 200);
+  var delays = [0, 5000, 10000];
+  QUESTIONS.forEach(function(q, i) {
+    schedule(function() { runV2bFlow(q); }, delays[i]);
   });
+}
+
+function runV2bBuddies() {
+  clearChat('buddies-v2b');
+  var log = document.getElementById('buddies-v2b');
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 1 [MMLU] \u2192 Luno tries first'); }, 400);
+  schedule(function() { addBubble(log, 'luno', 'Luno', 'Vitamin D! Answer: C.', 'Llama-3.1-8B'); }, 1300);
+  schedule(function() { addBubble(log, 'luno', 'Luno', 'Double-check: C again. Confident!', 'Llama-3.1-8B'); }, 2200);
+  schedule(function() { addBubble(log, 'system', 'System', '\u2713 Luno agreed with himself. Return C.'); }, 3100);
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 2 [GSM8K] \u2192 Luno tries math'); }, 5200);
+  schedule(function() { addBubble(log, 'luno', 'Luno', '48 + 24 = 72. Maybe.', 'Llama-3.1-8B'); }, 6100);
+  schedule(function() { addBubble(log, 'luno', 'Luno', 'Hmm wait... 36?', 'Llama-3.1-8B'); }, 7000);
+  schedule(function() { addBubble(log, 'system', 'System', '\u2717 Luno disagrees with himself. Escalating to Qwenny...'); }, 7900);
+  schedule(function() { addBubble(log, 'qwenny', 'Qwenny', '48 + 24 = 72. Twice verified. Answer: 72. \u2713', 'Qwen3-32B', true); }, 9000);
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 3 [ARC] \u2192 Luno, round 3'); }, 11300);
+  schedule(function() { addBubble(log, 'luno', 'Luno', 'Wet palms feel hot to me! Answer: B.', 'Llama-3.1-8B'); }, 12100);
+  schedule(function() { addBubble(log, 'luno', 'Luno', 'Yeah, B. Totally sure.', 'Llama-3.1-8B'); }, 13000);
+  schedule(function() { addBubble(log, 'system', 'System', "\u2717 Luno agreed with himself \u2014 but he's wrong! No escalation. Returns B. ARC failure mode."); }, 13900);
+}
+
+function runV3Scene() {
+  if (isBuddiesMode()) { runV3Buddies(); return; }
+  schedule(function() { animateBars('#scene-v3 .view-tech'); }, 200);
+  var delays = [0, 5700, 11400];
+  QUESTIONS.forEach(function(q, i) {
+    schedule(function() { runV3(q); }, delays[i]);
+  });
+}
+
+function runV3(q) {
+  var qEl = document.getElementById('v3-q');
+  var qtEl = document.getElementById('v3-qt');
+  var ansEl = document.getElementById('v3-a-display');
+  var decEl = document.getElementById('v3-dec');
+  var scene = document.getElementById('scene-v3');
+  var arrows = scene.querySelectorAll('.view-tech .arrow-down');
+
+  // MMLU: models disagree (from different families) \u2192 escalate to senior
+  // GSM8K + ARC: models agree \u2192 return directly
+  var shouldEscalate = (q.type === 'MMLU');
+
+  schedule(function() { showQuestion(qEl, qtEl, q); }, 0);
+  schedule(function() { activateArrow(arrows[0], 3500); }, 400);
+  schedule(function() {
+    pulseModel('v3-a', 1800);
+    pulseModel('v3-b', 1800);
+  }, 900);
+  schedule(function() { activateArrow(arrows[1], 1800); }, 2400);
+  schedule(function() {
+    decEl.classList.remove('agree');
+    if (!shouldEscalate) {
+      decEl.textContent = '\u2713 both models agree \u00b7 return';
+      decEl.classList.add('agree');
+    } else {
+      decEl.textContent = '\u2717 models disagree \u00b7 escalate';
+    }
+  }, 2800);
+
+  if (shouldEscalate) {
+    schedule(function() { activateArrow(arrows[2], 2000); }, 3700);
+    schedule(function() { document.getElementById('v3-senior').classList.add('active'); }, 4000);
+    schedule(function() { activateArrow(arrows[3], 1500); }, 5300);
+    schedule(function() {
+      document.getElementById('v3-senior').classList.remove('active');
+      showAnswer(ansEl, q, q.results.v3, q.results.v3 === q.correct);
+    }, 5500);
+  } else {
+    schedule(function() { activateArrow(arrows[3], 1500); }, 3100);
+    schedule(function() {
+      showAnswer(ansEl, q, q.results.v3, q.results.v3 === q.correct);
+    }, 3800);
+  }
+}
+
+function runV3Buddies() {
+  clearChat('buddies-v3');
+  var log = document.getElementById('buddies-v3');
+  // Q1: MMLU \u2014 models disagree \u2192 Prof Q
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 1 [MMLU]: vitamin D \u2014 Leo and Qwenny, go!'); }, 400);
+  schedule(function() { addBubble(log, 'leo', 'Leo', 'I got C \u2014 Vitamin D is fat-soluble.', 'Llama-3.3-70B', true); }, 1400);
+  schedule(function() { addBubble(log, 'qwenny', 'Qwenny', 'I got B \u2014 B12? Different architecture, different training data...', 'Qwen3-32B'); }, 2300);
+  schedule(function() { addBubble(log, 'system', 'System', '\u2717 Cross-model disagreement. Two families, two answers. Calling Professor Q...'); }, 3200);
+  schedule(function() { addBubble(log, 'profq', 'Professor Q', 'Considered both perspectives. Vitamin D is definitively fat-soluble. Answer: C. \u2713', 'Qwen3-235B', true); }, 4300);
+  // Q2: GSM8K \u2014 both agree
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 2 [GSM8K]: math problem'); }, 6200);
+  schedule(function() { addBubble(log, 'leo', 'Leo', '48 + 24 = 72.', 'Llama-3.3-70B', true); }, 7100);
+  schedule(function() { addBubble(log, 'qwenny', 'Qwenny', 'I also get 72. Cross-model agreement!', 'Qwen3-32B'); }, 8000);
+  schedule(function() { addBubble(log, 'system', 'System', '\u2713 Orthogonal families agree \u2192 very high confidence. Return 72.'); }, 8900);
+  // Q3: ARC \u2014 both agree
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 3 [ARC]: friction question'); }, 11000);
+  schedule(function() { addBubble(log, 'leo', 'Leo', 'Dry palms have highest friction. Answer: A.', 'Llama-3.3-70B', true); }, 11900);
+  schedule(function() { addBubble(log, 'qwenny', 'Qwenny', 'A \u2014 agreed. Dry is most friction.', 'Qwen3-32B'); }, 12800);
+  schedule(function() { addBubble(log, 'system', 'System', '\u2713 Cross-model agreement. Return A. V3 catches what same-family checking misses.'); }, 13700);
 }
 
 function runCeiling() {
-  schedule(() => animateBars('#scene-ceiling'), 200);
-
-  const delays = [0, 5000, 10000];
-  QUESTIONS.forEach((q, i) => {
-    schedule(() => runSimpleFlow('c', q, 'ceiling'), delays[i]);
+  if (isBuddiesMode()) { runCeilingBuddies(); return; }
+  schedule(function() { animateBars('#scene-ceiling .view-tech'); }, 200);
+  var delays = [0, 5000, 10000];
+  QUESTIONS.forEach(function(q, i) {
+    schedule(function() { runSimpleFlow('c', q, 'ceiling'); }, delays[i]);
   });
 }
 
+function runCeilingBuddies() {
+  clearChat('buddies-ceiling');
+  var log = document.getElementById('buddies-ceiling');
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 1 in progress...'); }, 400);
+  schedule(function() { addBubble(log, 'profq', 'Professor Q', 'Vitamin D is fat-soluble. Answer: C.', 'Qwen3-235B', true); }, 1400);
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 2 in progress...'); }, 4500);
+  schedule(function() { addBubble(log, 'profq', 'Professor Q', '48 sold in April, 24 in May. Total: 72. Answer: 72.', 'Qwen3-235B', true); }, 5500);
+  schedule(function() { addBubble(log, 'system', 'System', 'Question 3 in progress...'); }, 8500);
+  schedule(function() { addBubble(log, 'profq', 'Professor Q', 'Rubbing dry palms creates maximum friction heat. Answer: A.', 'Qwen3-235B', true); }, 9500);
+  schedule(function() { addBubble(log, 'system', 'System', 'Prof Q handles everything perfectly. But costs 14\u00d7 more than V2-A per query.'); }, 11500);
+}
+
 function runFinal() {
-  // Animate Pareto bars with staggered fills
-  const bars = document.querySelectorAll('#scene-final .pareto-fill');
-  bars.forEach((bar, i) => {
-    schedule(() => {
-      const v = bar.dataset.val;
-      bar.style.width = v + '%';
+  if (isBuddiesMode()) { runFinalBuddies(); return; }
+  var bars = document.querySelectorAll('#scene-final .pareto-fill');
+  bars.forEach(function(bar, i) {
+    schedule(function() {
+      bar.style.width = bar.dataset.val + '%';
     }, 300 + i * 180);
   });
+}
+
+function runFinalBuddies() {
+  clearChat('buddies-final');
+  var log = document.getElementById('buddies-final');
+  schedule(function() { addBubble(log, 'system', 'System', 'Results are in. Seven architectures benchmarked across MMLU, GSM8K, ARC.'); }, 400);
+  schedule(function() { addBubble(log, 'system', 'System', 'V2-A (Qwenny self-consistency): 82% avg \u00b7 11% senior calls. Cheapest competitive config.'); }, 1800);
+  schedule(function() { addBubble(log, 'system', 'System', 'V3 (Leo + Qwenny cross-check): 92% avg \u00b7 73% senior calls. Near-ceiling accuracy.'); }, 3200);
+  schedule(function() { addBubble(log, 'system', 'System', 'Both beat V1 and single-model baselines on the Pareto frontier.'); }, 4800);
+  schedule(function() { addBubble(log, 'qwenny', 'Qwenny', 'Pick me for cost efficiency. 11% senior calls.', 'Qwen3-32B'); }, 6200);
+  schedule(function() { addBubble(log, 'leo', 'Leo', 'Pick us for accuracy. Different families catch more errors.', 'Llama-3.3-70B', true); }, 7400);
+  schedule(function() { addBubble(log, 'profq', 'Professor Q', "And when they really can't agree \u2014 I'll be here.", 'Qwen3-235B', true); }, 8600);
+  schedule(function() { addBubble(log, 'system', 'System', '\u2192 github.com/Arun07AK/adaptive-model-orchestrator'); }, 10200);
 }
 
 // ============== FLOW HELPERS ==============
 
 function showQuestion(qEl, qtEl, q) {
   qEl.classList.add('active');
-  qtEl.textContent = `[${q.type}] ${q.text}`;
+  qtEl.textContent = '[' + q.type + '] ' + q.text;
 }
 
 function showAnswer(ansEl, q, answered, isCorrect) {
   ansEl.classList.remove('correct', 'wrong');
   ansEl.classList.add(isCorrect ? 'correct' : 'wrong');
-  const valEl = ansEl.querySelector('.answer-value');
+  var valEl = ansEl.querySelector('.answer-value');
   valEl.textContent = answered;
-  // Add icon
-  let icon = ansEl.querySelector('.answer-icon');
+  var icon = ansEl.querySelector('.answer-icon');
   if (!icon) {
     icon = document.createElement('span');
     icon.className = 'answer-icon';
     ansEl.appendChild(icon);
   }
   icon.className = 'answer-icon ' + (isCorrect ? 'ok' : 'err');
-  icon.textContent = isCorrect ? '✓' : '✗';
+  icon.textContent = isCorrect ? '\u2713' : '\u2717';
 }
 
-function pulseModel(elId, onTime = 2000) {
-  const el = document.getElementById(elId);
+function pulseModel(elId, onTime) {
+  onTime = onTime || 2000;
+  var el = document.getElementById(elId);
   if (!el) return;
   el.classList.add('active');
-  schedule(() => el.classList.remove('active'), onTime);
+  schedule(function() { el.classList.remove('active'); }, onTime);
 }
 
-function activateArrow(arrow, onTime = 2000) {
+function activateArrow(arrow, onTime) {
+  onTime = onTime || 2000;
   if (!arrow) return;
   arrow.classList.add('active');
-  schedule(() => arrow.classList.remove('active'), onTime);
+  schedule(function() { arrow.classList.remove('active'); }, onTime);
 }
 
 // Simple flow: Question → one model → answer (baseline & ceiling)
 function runSimpleFlow(idPrefix, q, configKey) {
-  const qEl = document.getElementById(`${idPrefix}-q`);
-  const qtEl = document.getElementById(`${idPrefix}-qt`);
-  const modelEl = document.getElementById(`${idPrefix}-model`);
-  const ansEl = document.getElementById(`${idPrefix}-a`);
-  const scene = qEl.closest('.scene');
-  const arrows = scene.querySelectorAll('.arrow-down');
+  var qEl = document.getElementById(idPrefix + '-q');
+  var qtEl = document.getElementById(idPrefix + '-qt');
+  var modelEl = document.getElementById(idPrefix + '-model');
+  var ansEl = document.getElementById(idPrefix + '-a');
+  var scene = qEl.closest('.scene');
+  var arrows = scene.querySelectorAll('.view-tech .arrow-down');
 
-  schedule(() => showQuestion(qEl, qtEl, q), 0);
-  schedule(() => activateArrow(arrows[0], 3500), 400);
-  schedule(() => modelEl.classList.add('active'), 900);
-  schedule(() => activateArrow(arrows[1], 2000), 2500);
-  schedule(() => {
+  schedule(function() { showQuestion(qEl, qtEl, q); }, 0);
+  schedule(function() { activateArrow(arrows[0], 3500); }, 400);
+  schedule(function() { modelEl.classList.add('active'); }, 900);
+  schedule(function() { activateArrow(arrows[1], 2000); }, 2500);
+  schedule(function() {
     modelEl.classList.remove('active');
-    const answered = q.results[configKey];
-    const correct = answered === q.correct;
+    var answered = q.results[configKey];
+    var correct = answered === q.correct;
     showAnswer(ansEl, q, answered, correct);
   }, 3000);
 }
 
 function runV1OrchFlow(q) {
-  const qEl = document.getElementById('v1o-q');
-  const qtEl = document.getElementById('v1o-qt');
-  const ansEl = document.getElementById('v1o-a');
-  const scene = document.getElementById('scene-v1orch');
-  const arrows = scene.querySelectorAll('.arrow-down');
+  var qEl = document.getElementById('v1o-q');
+  var qtEl = document.getElementById('v1o-qt');
+  var ansEl = document.getElementById('v1o-a');
+  var scene = document.getElementById('scene-v1orch');
+  var arrows = scene.querySelectorAll('.view-tech .arrow-down');
 
-  // Pick specialist by question type
-  let specialistId = 'v1o-gen';
-  if (q.type === 'GSM8K') specialistId = 'v1o-math';
-  // MMLU + ARC → general in this simplified demo
+  var specialistId = (q.type === 'GSM8K') ? 'v1o-math' : 'v1o-gen';
 
-  schedule(() => showQuestion(qEl, qtEl, q), 0);
-  schedule(() => activateArrow(arrows[0], 3500), 400);
-  schedule(() => activateArrow(arrows[1], 2800), 1200);
-  // Classifier pulses then routes
-  schedule(() => pulseModel(specialistId, 2000), 1700);
-  schedule(() => activateArrow(arrows[2], 1500), 3000);
-  schedule(() => {
+  schedule(function() { showQuestion(qEl, qtEl, q); }, 0);
+  schedule(function() { activateArrow(arrows[0], 3500); }, 400);
+  schedule(function() { activateArrow(arrows[1], 2800); }, 1200);
+  schedule(function() { pulseModel(specialistId, 2000); }, 1700);
+  schedule(function() { activateArrow(arrows[2], 1500); }, 3000);
+  schedule(function() {
     showAnswer(ansEl, q, q.results.v1orch, q.results.v1orch === q.correct);
   }, 3600);
 }
 
 function runV1HybFlow(q) {
-  const qEl = document.getElementById('v1h-q');
-  const qtEl = document.getElementById('v1h-qt');
-  const ansEl = document.getElementById('v1h-a');
-  const scene = document.getElementById('scene-v1hyb');
-  const arrows = scene.querySelectorAll('.arrow-down');
+  var qEl = document.getElementById('v1h-q');
+  var qtEl = document.getElementById('v1h-qt');
+  var ansEl = document.getElementById('v1h-a');
+  var scene = document.getElementById('scene-v1hyb');
+  var arrows = scene.querySelectorAll('.view-tech .arrow-down');
 
-  schedule(() => showQuestion(qEl, qtEl, q), 0);
-  schedule(() => activateArrow(arrows[0], 3500), 400);
-  // All 3 proposers pulse in parallel
-  schedule(() => {
+  schedule(function() { showQuestion(qEl, qtEl, q); }, 0);
+  schedule(function() { activateArrow(arrows[0], 3500); }, 400);
+  schedule(function() {
     pulseModel('v1h-p1', 1800);
     pulseModel('v1h-p2', 1800);
     pulseModel('v1h-p3', 1800);
   }, 900);
-  schedule(() => activateArrow(arrows[1], 2500), 2400);
-  schedule(() => document.getElementById('v1h-agg').classList.add('active'), 2900);
-  schedule(() => activateArrow(arrows[2], 1500), 3800);
-  schedule(() => {
+  schedule(function() { activateArrow(arrows[1], 2500); }, 2400);
+  schedule(function() { document.getElementById('v1h-agg').classList.add('active'); }, 2900);
+  schedule(function() { activateArrow(arrows[2], 1500); }, 3800);
+  schedule(function() {
     document.getElementById('v1h-agg').classList.remove('active');
     showAnswer(ansEl, q, q.results.v1hyb, q.results.v1hyb === q.correct);
   }, 4300);
 }
 
 function runV2aFlow(q) {
-  const qEl = document.getElementById('v2a-q');
-  const qtEl = document.getElementById('v2a-qt');
-  const ansEl = document.getElementById('v2a-a');
-  const decEl = document.getElementById('v2a-dec');
-  const scene = document.getElementById('scene-v2a');
-  const arrows = scene.querySelectorAll('.arrow-down');
+  var qEl = document.getElementById('v2a-q');
+  var qtEl = document.getElementById('v2a-qt');
+  var ansEl = document.getElementById('v2a-a');
+  var decEl = document.getElementById('v2a-dec');
+  var scene = document.getElementById('scene-v2a');
+  var arrows = scene.querySelectorAll('.view-tech .arrow-down');
 
-  // V2-A: most questions handled by specialist; on "uncertain" (GSM8K in this demo), senior reviews
-  const escalates = (q.type === 'GSM8K');
+  var escalates = (q.type === 'GSM8K');
 
-  schedule(() => showQuestion(qEl, qtEl, q), 0);
-  schedule(() => activateArrow(arrows[0], 3500), 400);
-  // Both specialist attempts pulse in parallel
-  schedule(() => {
+  schedule(function() { showQuestion(qEl, qtEl, q); }, 0);
+  schedule(function() { activateArrow(arrows[0], 3500); }, 400);
+  schedule(function() {
     pulseModel('v2a-s1', 1600);
     pulseModel('v2a-s2', 1600);
   }, 900);
-  schedule(() => activateArrow(arrows[1], 1800), 2300);
-  // Decision
-  schedule(() => {
+  schedule(function() { activateArrow(arrows[1], 1800); }, 2300);
+  schedule(function() {
     decEl.classList.remove('agree');
     if (!escalates) {
-      decEl.textContent = '✓ attempts agree · return';
+      decEl.textContent = '\u2713 attempts agree \u00b7 return';
       decEl.classList.add('agree');
     } else {
-      decEl.textContent = '✗ disagree · escalate';
+      decEl.textContent = '\u2717 disagree \u00b7 escalate';
     }
   }, 2700);
 
   if (escalates) {
-    schedule(() => activateArrow(arrows[2], 2000), 3600);
-    schedule(() => document.getElementById('v2a-senior').classList.add('active'), 3900);
-    schedule(() => activateArrow(arrows[3], 1500), 5200);
-    schedule(() => {
+    schedule(function() { activateArrow(arrows[2], 2000); }, 3600);
+    schedule(function() { document.getElementById('v2a-senior').classList.add('active'); }, 3900);
+    schedule(function() { activateArrow(arrows[3], 1500); }, 5200);
+    schedule(function() {
       document.getElementById('v2a-senior').classList.remove('active');
       showAnswer(ansEl, q, q.results.v2a, q.results.v2a === q.correct);
     }, 5400);
   } else {
-    // Skip senior, go straight to answer
-    schedule(() => activateArrow(arrows[3], 1500), 3000);
-    schedule(() => {
+    schedule(function() { activateArrow(arrows[3], 1500); }, 3000);
+    schedule(function() {
       showAnswer(ansEl, q, q.results.v2a, q.results.v2a === q.correct);
     }, 3700);
   }
 }
 
 function runV2bFlow(q) {
-  const qEl = document.getElementById('v2b-q');
-  const qtEl = document.getElementById('v2b-qt');
-  const ansEl = document.getElementById('v2b-a');
-  const scene = document.getElementById('scene-v2b');
-  const arrows = scene.querySelectorAll('.arrow-down');
+  var qEl = document.getElementById('v2b-q');
+  var qtEl = document.getElementById('v2b-qt');
+  var ansEl = document.getElementById('v2b-a');
+  var scene = document.getElementById('scene-v2b');
+  var arrows = scene.querySelectorAll('.view-tech .arrow-down');
 
-  // V2-B: laborer tries; escalates for GSM8K; for ARC laborer is "confidently wrong" → returns wrong
-  const escalatesToSpec = (q.type === 'GSM8K');
-  const escalatesToSenior = (q.type === 'GSM8K');
-  const laborerConfidentWrong = (q.type === 'ARC' && q.results.v2b !== q.correct);
+  var escalatesToSpec = (q.type === 'GSM8K');
+  var escalatesToSenior = (q.type === 'GSM8K');
 
-  schedule(() => showQuestion(qEl, qtEl, q), 0);
-  schedule(() => activateArrow(arrows[0], 3500), 400);
-  schedule(() => pulseModel('v2b-lab', 1800), 900);
+  schedule(function() { showQuestion(qEl, qtEl, q); }, 0);
+  schedule(function() { activateArrow(arrows[0], 3500); }, 400);
+  schedule(function() { pulseModel('v2b-lab', 1800); }, 900);
 
   if (escalatesToSpec) {
-    schedule(() => activateArrow(arrows[1], 2000), 2200);
-    schedule(() => pulseModel('v2b-spec', 1600), 2600);
+    schedule(function() { activateArrow(arrows[1], 2000); }, 2200);
+    schedule(function() { pulseModel('v2b-spec', 1600); }, 2600);
 
     if (escalatesToSenior) {
-      schedule(() => activateArrow(arrows[2], 2000), 3800);
-      schedule(() => pulseModel('v2b-sen', 1500), 4100);
-      schedule(() => activateArrow(arrows[3], 1500), 5200);
-      schedule(() => {
+      schedule(function() { activateArrow(arrows[2], 2000); }, 3800);
+      schedule(function() { pulseModel('v2b-sen', 1500); }, 4100);
+      schedule(function() { activateArrow(arrows[3], 1500); }, 5200);
+      schedule(function() {
         showAnswer(ansEl, q, q.results.v2b, q.results.v2b === q.correct);
       }, 5500);
     } else {
-      schedule(() => activateArrow(arrows[3], 1500), 4000);
-      schedule(() => {
+      schedule(function() { activateArrow(arrows[3], 1500); }, 4000);
+      schedule(function() {
         showAnswer(ansEl, q, q.results.v2b, q.results.v2b === q.correct);
       }, 4500);
     }
   } else {
-    // Laborer returns (correctly or confidently wrong)
-    schedule(() => activateArrow(arrows[3], 1500), 2200);
-    schedule(() => {
+    schedule(function() { activateArrow(arrows[3], 1500); }, 2200);
+    schedule(function() {
       showAnswer(ansEl, q, q.results.v2b, q.results.v2b === q.correct);
     }, 2800);
   }
 }
 
-function animateBars(sceneSelector) {
-  const bars = document.querySelectorAll(sceneSelector + ' .summary-bar-fill');
-  bars.forEach((bar, i) => {
-    schedule(() => {
+function animateBars(selector) {
+  var bars = document.querySelectorAll(selector + ' .summary-bar-fill');
+  bars.forEach(function(bar, i) {
+    schedule(function() {
       bar.style.width = bar.dataset.val + '%';
     }, 100 + i * 120);
   });
