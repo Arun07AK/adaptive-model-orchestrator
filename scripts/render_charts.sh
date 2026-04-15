@@ -32,6 +32,7 @@ render "01_hero.html"         "01_hero.png"
 render "02_benchmarks.html"   "02_accuracy.png"
 render "03_architecture.html" "03_architecture.png"
 render "04_research.html"     "04_research.png"
+render "05_v2_comparison.html" "05_v2_comparison.png"
 
 echo ""
 echo "Done. Output files:"

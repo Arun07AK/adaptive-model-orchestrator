@@ -85,11 +85,11 @@
 
   .title {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 58px;
+    font-size: 52px;
     font-weight: 600;
     line-height: 1.05;
     letter-spacing: -0.02em;
-    margin-bottom: 80px;
+    margin-bottom: 56px;
   }
 
   .title strong {
@@ -101,15 +101,15 @@
     display: flex;
     justify-content: center;
     align-items: stretch;
-    gap: 32px;
-    margin-bottom: 80px;
+    gap: 20px;
+    margin-bottom: 64px;
   }
 
   .card {
     flex: 1;
-    max-width: 360px;
-    padding: 48px 32px;
-    border-radius: 20px;
+    max-width: 280px;
+    padding: 36px 24px;
+    border-radius: 18px;
     background: rgba(255, 255, 255, 0.02);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -122,12 +122,12 @@
     border-color: rgba(236, 72, 153, 0.2);
   }
 
-  .card.v2 {
-    border-color: rgba(34, 211, 238, 0.3);
-    background: rgba(34, 211, 238, 0.04);
+  .card.v2a {
+    border-color: rgba(34, 211, 238, 0.35);
+    background: rgba(34, 211, 238, 0.05);
   }
 
-  .card.v2::before {
+  .card.v2a::before {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
@@ -135,9 +135,22 @@
     background: linear-gradient(90deg, transparent, #22d3ee, transparent);
   }
 
+  .card.v2b {
+    border-color: rgba(251, 191, 36, 0.3);
+    background: rgba(251, 191, 36, 0.04);
+  }
+
+  .card.v2b::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #fbbf24, transparent);
+  }
+
   .card-label {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 500;
     letter-spacing: 0.2em;
     color: #64748b;
@@ -146,22 +159,24 @@
 
   .card-name {
     font-family: 'Inter', sans-serif;
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 500;
     color: #94a3b8;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
+    min-height: 38px;
   }
 
   .card.v1 .card-label { color: #f472b6; }
-  .card.v2 .card-label { color: #22d3ee; }
+  .card.v2a .card-label { color: #22d3ee; }
+  .card.v2b .card-label { color: #fbbf24; }
 
   .big-number {
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
-    font-size: 140px;
+    font-size: 100px;
     line-height: 1;
     letter-spacing: -0.04em;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
   }
 
   .card.v1 .big-number {
@@ -169,16 +184,22 @@
     opacity: 0.55;
   }
 
-  .card.v2 .big-number {
+  .card.v2a .big-number {
     color: #22d3ee;
     text-shadow:
-      0 0 60px rgba(34, 211, 238, 0.5),
-      0 0 120px rgba(34, 211, 238, 0.25);
+      0 0 50px rgba(34, 211, 238, 0.5),
+      0 0 100px rgba(34, 211, 238, 0.2);
+  }
+
+  .card.v2b .big-number {
+    color: #fbbf24;
+    text-shadow:
+      0 0 40px rgba(251, 191, 36, 0.4);
   }
 
   .card-caption {
     font-family: 'Inter', sans-serif;
-    font-size: 14px;
+    font-size: 12px;
     color: #64748b;
     line-height: 1.4;
   }
@@ -235,29 +256,36 @@
   <div class="eyebrow">Adaptive Model Orchestrator</div>
 
   <h1 class="title">
-    Two architectures.<br>
-    <strong>Same accuracy.</strong>
+    How often does your AI system<br>
+    call the <strong>expensive model?</strong>
   </h1>
 
   <div class="comparison">
     <div class="card v1">
       <div class="card-label">V1</div>
-      <div class="card-name">Mixture of Agents</div>
+      <div class="card-name">Mixture of Agents<br>(parallel)</div>
       <div class="big-number">100<span style="font-size: 60%;">%</span></div>
       <div class="card-caption">of queries call the<br>expensive 235B model</div>
     </div>
 
-    <div class="card v2">
-      <div class="card-label">V2</div>
-      <div class="card-name">Selective Review</div>
+    <div class="card v2a">
+      <div class="card-label">V2-A</div>
+      <div class="card-name">Selective Review<br>(2-tier)</div>
       <div class="big-number">11<span style="font-size: 60%;">%</span></div>
-      <div class="card-caption">of queries call the<br>expensive 235B model</div>
+      <div class="card-caption">9× fewer<br>expensive calls</div>
+    </div>
+
+    <div class="card v2b">
+      <div class="card-label">V2-B</div>
+      <div class="card-name">Cascade<br>(3-tier)</div>
+      <div class="big-number">7<span style="font-size: 60%;">%</span></div>
+      <div class="card-caption">14× fewer<br>expensive calls</div>
     </div>
   </div>
 
   <div class="takeaway">
-    <div class="takeaway-big"><span class="accent">9×</span> fewer expensive calls.</div>
-    <div class="takeaway-sub">Same accuracy on MMLU &amp; ARC.</div>
+    <div class="takeaway-big">Two V2 architectures.<br><span class="accent">Both</span> dramatically cheaper.</div>
+    <div class="takeaway-sub">Same free APIs. Same benchmarks. Smarter orchestration.</div>
   </div>
 </div>
 

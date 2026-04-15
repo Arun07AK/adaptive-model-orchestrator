@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>05 V2 Comparison</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 1080px;
+    height: 1080px;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #f1f5f9;
+    background:
+      radial-gradient(ellipse at 20% 30%, rgba(34, 211, 238, 0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 70%, rgba(251, 191, 36, 0.1) 0%, transparent 50%),
+      linear-gradient(180deg, #0a0a12 0%, #000 100%);
+    position: relative;
+    padding: 70px 80px;
+  }
+
+  body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 20%, transparent 80%);
+    pointer-events: none;
+  }
+
+  .corner {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    border-color: rgba(255,255,255,0.15);
+    border-style: solid;
+    border-width: 0;
+  }
+  .corner.tl { top: 40px; left: 40px; border-top-width: 1px; border-left-width: 1px; }
+  .corner.tr { top: 40px; right: 40px; border-top-width: 1px; border-right-width: 1px; }
+  .corner.bl { bottom: 40px; left: 40px; border-bottom-width: 1px; border-left-width: 1px; }
+  .corner.br { bottom: 40px; right: 40px; border-bottom-width: 1px; border-right-width: 1px; }
+
+  .container { position: relative; z-index: 2; }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.3em;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .eyebrow::before { content: ''; width: 40px; height: 1px; background: #334155; }
+
+  .title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 44px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+
+  .subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    color: #94a3b8;
+    margin-bottom: 40px;
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .variant {
+    padding: 32px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.02);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.08);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .variant.v2a {
+    border-color: rgba(34, 211, 238, 0.3);
+    background: rgba(34, 211, 238, 0.03);
+  }
+
+  .variant.v2a::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, #22d3ee 50%, transparent);
+  }
+
+  .variant.v2b {
+    border-color: rgba(251, 191, 36, 0.3);
+    background: rgba(251, 191, 36, 0.03);
+  }
+
+  .variant.v2b::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, #fbbf24 50%, transparent);
+  }
+
+  .variant-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .variant.v2a .variant-label { color: #22d3ee; }
+  .variant.v2b .variant-label { color: #fbbf24; }
+
+  .variant-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+
+  .variant-mimics {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    color: #64748b;
+    font-style: italic;
+    margin-bottom: 22px;
+  }
+
+  .tiers {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 22px;
+  }
+
+  .tier {
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .tier-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: #64748b;
+    margin-right: 10px;
+  }
+
+  .tier-model {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #cbd5e1;
+    flex: 1;
+  }
+
+  .tier-pct {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #94a3b8;
+  }
+
+  .tier.senior-v2a .tier-pct { color: #22d3ee; }
+  .tier.senior-v2b .tier-pct { color: #fbbf24; }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: #e2e8f0;
+  }
+
+  .pros-cons {
+    margin-top: 22px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  .pros-cons .line {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+    align-items: flex-start;
+  }
+
+  .icon-check { color: #10b981; font-weight: 700; flex-shrink: 0; }
+  .icon-warn { color: #f87171; font-weight: 700; flex-shrink: 0; }
+
+  .pros-cons .text { color: #cbd5e1; }
+
+  .tldr {
+    margin-top: 32px;
+    padding: 22px 32px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.08);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px;
+    font-weight: 500;
+    color: #cbd5e1;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+  }
+
+  .tldr .tldr-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .tldr .hi-a { color: #22d3ee; font-weight: 600; }
+  .tldr .hi-b { color: #fbbf24; font-weight: 600; }
+
+  .footer {
+    position: absolute;
+    bottom: 32px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #475569;
+    letter-spacing: 0.05em;
+  }
+
+  .footer .arrow { color: #22d3ee; margin-right: 8px; }
+</style>
+</head>
+<body>
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<div class="container">
+  <div class="eyebrow">V2 · Two Variants</div>
+  <h1 class="title">Selective Review vs. Cascade.</h1>
+  <div class="subtitle">Same thesis — call the expensive model rarely.<br>Two different hierarchies, inspired by two different real-world patterns.</div>
+
+  <div class="comparison">
+
+    <!-- V2-A Selective Review -->
+    <div class="variant v2a">
+      <div class="variant-label">V2-A · 2-TIER</div>
+      <div class="variant-name">Selective Review</div>
+      <div class="variant-mimics">Medical — resident → attending</div>
+
+      <div class="tiers">
+        <div class="tier">
+          <span class="tier-num">T1</span>
+          <span class="tier-model">Specialist (domain-matched, 17–70B)</span>
+          <span class="tier-pct">100%</span>
+        </div>
+        <div class="tier senior-v2a">
+          <span class="tier-num">T2</span>
+          <span class="tier-model">Senior (Qwen3-235B)</span>
+          <span class="tier-pct">11%</span>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat"><div class="stat-label">MMLU</div><div class="stat-value">66</div></div>
+        <div class="stat"><div class="stat-label">GSM8K</div><div class="stat-value">87</div></div>
+        <div class="stat"><div class="stat-label">ARC</div><div class="stat-value">93</div></div>
+      </div>
+
+      <div class="pros-cons">
+        <div class="line"><span class="icon-check">✓</span><span class="text">Matches V1 accuracy on MMLU + ARC</span></div>
+        <div class="line"><span class="icon-check">✓</span><span class="text">9× fewer expensive calls</span></div>
+      </div>
+    </div>
+
+    <!-- V2-B Cascade -->
+    <div class="variant v2b">
+      <div class="variant-label">V2-B · 3-TIER</div>
+      <div class="variant-name">Full Cascade</div>
+      <div class="variant-mimics">Consulting — associate → manager → partner</div>
+
+      <div class="tiers">
+        <div class="tier">
+          <span class="tier-num">T1</span>
+          <span class="tier-model">Laborer (Llama-3.1-8B)</span>
+          <span class="tier-pct">100%</span>
+        </div>
+        <div class="tier">
+          <span class="tier-num">T2</span>
+          <span class="tier-model">Specialist (domain-matched)</span>
+          <span class="tier-pct">18%</span>
+        </div>
+        <div class="tier senior-v2b">
+          <span class="tier-num">T3</span>
+          <span class="tier-model">Senior (Qwen3-235B)</span>
+          <span class="tier-pct">7%</span>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat"><div class="stat-label">MMLU</div><div class="stat-value">66</div></div>
+        <div class="stat"><div class="stat-label">GSM8K</div><div class="stat-value">83</div></div>
+        <div class="stat"><div class="stat-label">ARC</div><div class="stat-value">77</div></div>
+      </div>
+
+      <div class="pros-cons">
+        <div class="line"><span class="icon-check">✓</span><span class="text">14× fewer expensive calls (lowest cost)</span></div>
+        <div class="line"><span class="icon-warn">!</span><span class="text">ARC drop: 8B laborer confidently-wrong → no escalation</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="tldr">
+    <div class="tldr-label">TL;DR</div>
+    <span class="hi-a">V2-A</span> if accuracy matters · <span class="hi-b">V2-B</span> if cost matters most · Either beats V1 on the cost-per-quality frontier.
+  </div>
+</div>
+
+<div class="footer">
+  <span class="arrow">→</span>github.com/Arun07AK/adaptive-model-orchestrator
+</div>
+</body>
+</html>
