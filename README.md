@@ -1,14 +1,20 @@
 # Adaptive Model Orchestrator
 
-An intelligent multi-model orchestration system that proves open-source LLMs can beat single-model baselines — at zero cost — by routing tasks to domain specialists and selectively escalating critical decisions.
+An exploration of cost-efficient LLM orchestration: **how closely can we approach the best-available-model's accuracy while calling it a fraction of the time?**
 
-## The Thesis
+## The Thesis (Revised after baseline evaluation)
 
-> No single open-source model is best at everything. The winning architecture is not the biggest model — it's the *right* model for each task, with selective escalation when the specialist is uncertain.
+> **The best single large model sets the accuracy ceiling.** The real question is: how much of that accuracy can you retain while calling it dramatically less often?
 
-Built in two versions:
-- **V1** — Parallel collaboration (Mixture of Agents)
-- **V2** — Sequential cascade (Laborer → Specialist → Senior), inspired by how real expert teams actually work
+Evaluated five architectures against two baselines:
+
+- **Cheap baseline** — 7B model for everything (cheap, limited)
+- **Expensive baseline** — Qwen3-235B for everything (upper-bound accuracy, expensive)
+- **V1 Orchestrated / V1 Hybrid (MoA)** — multi-model collaboration (turned out NOT to beat the 235B ceiling)
+- **V2-A Selective Review** — 2-tier cascade with self-consistency (efficient sweet spot)
+- **V2-B Cascade** — 3-tier laborer→specialist→senior (minimum cost, accuracy trade-off)
+
+The post-hoc honest finding: **V2-A is the only configuration that clearly advances the Pareto frontier.** V1 approaches do not beat the 235B upper bound — they're educational but not efficient. This README documents what we built, what worked, and what didn't.
 
 ---
 
@@ -18,58 +24,71 @@ All configurations compared on **MMLU (50 questions across 10 subjects), GSM8K (
 
 > **Sample size disclosure:** These are small sample sizes (95% confidence intervals are roughly ±13% on MMLU, ±17% on GSM8K and ARC). Treat results as directional evidence, not statistically robust claims. Full-suite MMLU evaluation (14K questions) planned.
 
-### V1 Benchmarks — Parallel Collaboration
+### Two Baselines (bounds the possibility space)
 
-V1 asks: *"Can multiple models working together beat a single model?"*
+| Baseline | MMLU | GSM8K | ARC | 235B calls | Role |
+|----------|------|-------|-----|-----------|------|
+| Cheap: Qwen 2.5 7B local | 60.0% | 26.7% | 93.3% | 0% | Lower bound (cheap/fast) |
+| **Expensive: Qwen3-235B alone** | **92.0%** | **100.0%** | **96.7%** | 100% | **Upper bound (accuracy ceiling)** |
 
-| V1 Config | MMLU | GSM8K | ARC | Senior called on | Description |
-|-----------|------|-------|-----|-----------------|-------------|
-| Baseline (Qwen 2.5 7B local) | 60.0% | 26.7% | 93.3% | — | Single 7B for everything |
-| Orchestrated (routing) | 76.0% | 70.0% | 93.3% | 100% | Router → strongest model per domain |
-| Hybrid (routing + MoA) | **76.0%** | **96.7%** | **96.7%** | 100% | Routing for MCQ, MoA for open-ended math |
-
-**V1 Best result: Hybrid → MMLU 76%, GSM8K 97%, ARC 97%.** The expensive 235B model is called on every question. Maximum accuracy, maximum cost.
+The 235B baseline was added after technical review flagged it as missing. **Running it reframed the entire project**: orchestration doesn't beat the biggest model — it trades accuracy for cost savings.
 
 ---
 
-### V2 Benchmarks — Sequential Triage (Two Versions)
+### V1 Benchmarks — Parallel Collaboration (does not beat 235B alone)
 
-V2 asks: *"Can we match V1 accuracy while calling the expensive model less often — like real expert teams do?"*
+V1 asked: *"Can multiple models working together beat a single model?"* The answer, honestly: **no, not on these benchmarks.**
+
+| V1 Config | MMLU | GSM8K | ARC | 235B calls | vs 235B alone |
+|-----------|------|-------|-----|-----------|---------------|
+| Orchestrated (routing) | 76.0% | 70.0% | 93.3% | 100% | -16 / -30 / -3 pts |
+| Hybrid (routing + MoA) | 76.0% | 96.7% | 96.7% | 100% | -16 / -3 / 0 pts |
+
+V1 Hybrid matches 235B alone on ARC and comes close on GSM8K, but loses 16 points on MMLU. **V1 still uses the 235B on every query**, so there's no cost saving. **V1 is educational but not an efficient architecture.**
+
+---
+
+### V2 Benchmarks — Sequential Triage (cost-efficiency play)
+
+V2 asks the right question: *"If the 235B sets the ceiling, how close can we get while calling it less often?"*
 
 Built in two versions matching two real-world hierarchies:
 
-| V2 Config | MMLU | GSM8K | ARC | Senior called on | Mimics |
-|-----------|------|-------|-----|-----------------|--------|
-| **V2-A: Selective Review** (2-tier) | 66.0% | 86.7% | **93.3%** | **11%** | Medical: resident → attending |
-| **V2-B: Cascade** (3-tier) | 66.0% | 83.3% | 76.7% | **7%** | Consulting: associate → manager → partner |
+| V2 Config | MMLU | GSM8K | ARC | 235B calls | Accuracy loss vs 235B alone |
+|-----------|------|-------|-----|-----------|-----------------------------|
+| **V2-A: Selective Review** (2-tier) | 66.0% | 86.7% | 93.3% | **11%** | -26 / -13 / -3 pts |
+| **V2-B: Cascade** (3-tier) | 66.0% | 83.3% | 76.7% | **7%** | -26 / -17 / -20 pts |
 
 - **V2-A** — Specialist answers, self-checks. Senior reviews only when specialist is inconsistent with itself.
 - **V2-B** — Adds a cheap Laborer tier first. Most questions never even reach the Specialist, let alone the Senior.
 
-**V2-A Selective Review matches V1 Orchestrated on accuracy (MMLU 66%, ARC 93%) while calling the 235B model on only 11% of questions.** This is the cost-efficiency win: comparable results from 9× fewer expensive calls.
+**V2-A is the actual efficiency story.** On ARC, it gives up only 3 points vs the full 235B (93% vs 97%) while using the 235B on 11% of queries — a 9× reduction in expensive calls. On math/reasoning (MMLU, GSM8K), it gives up more accuracy for the same cost savings.
 
-**V2-B Cascade** pushes senior invocation even lower (7%) at the cost of some accuracy on ARC (where the 8B Laborer is confidently wrong on ~23% of questions, never triggering escalation).
+**V2-B demonstrates a failure mode.** The 8B Laborer is confidently wrong on a meaningful fraction of ARC questions, never triggering escalation — so adding cheaper tiers below the specialist hurt more than they helped on that benchmark.
 
 V2-B Cascade's tier usage (from actual run of 110 questions):
 - **Laborer** (Llama-3.1-8B, 8B): handled 110/110 (started every question)
-- **Specialist** (domain-matched, strictly larger than laborer — Qwen3-32B math / Llama-4-Scout code / Llama-3.3-70B general): 20/110 escalations (18%)
+- **Specialist** (domain-matched): 20/110 escalations (18%)
 - **Senior** (Qwen3-235B, Cerebras): 8/110 escalations (7%)
 
-This matches how real expert teams operate — seniors touch only 5-20% of decisions.
+This matches how real expert teams operate — seniors touch only 5-20% of decisions. Whether the accuracy tradeoff is worth it depends on your cost budget.
 
 ---
 
-### Combined Comparison — V1 vs V2
+### Combined Comparison — Cost/Accuracy Pareto View
 
-The full picture of what was built:
+The full picture of what was built, in ascending accuracy order:
 
-| Approach | MMLU | GSM8K | ARC | Senior invocation | Cost profile | Best for |
-|----------|------|-------|-----|-------------------|--------------|----------|
-| Baseline 7B | 60% | 27% | 93% | — | Zero API cost | Dev/offline |
-| **V1 Orchestrated** | 76% | 70% | 93% | 100% | High — big model on every call | When accuracy dominates |
-| **V1 Hybrid** ⭐ | 76% | **97%** | **97%** | 100% | Highest — adds MoA overhead | Maximum accuracy scenarios |
-| **V2-A Selective Review** ⭐ | 66% | 87% | 93% | **11%** | Low — 89% handled by specialist | Medical-team-like escalation |
-| **V2-B Cascade** | 66% | 83% | 77% | **7%** | Lowest — 93% never hit the 235B | Consulting-firm-like hierarchy |
+| Approach | MMLU | GSM8K | ARC | 235B calls | Status |
+|----------|------|-------|-----|-----------|--------|
+| Cheap: Qwen 2.5 7B | 60% | 27% | 93% | 0% | Lower bound |
+| V2-B Cascade | 66% | 83% | 77% | 7% | Cheapest, but ARC weakness |
+| **V2-A Selective Review** ⭐ | 66% | 87% | 93% | **11%** | **Efficient sweet spot** |
+| V1 Orchestrated | 76% | 70% | 93% | 100% | Uses 235B every call, no savings |
+| V1 Hybrid | 76% | 97% | 97% | 100% | Close to ceiling but no cost win |
+| **Expensive: Qwen3-235B alone** | **92%** | **100%** | **97%** | 100% | **Upper bound (accuracy ceiling)** |
+
+**Reading the table:** V2-A is the only config that meaningfully advances the cost/accuracy frontier. V1 uses the expensive model on every query but doesn't even match it on MMLU — so it's strictly dominated. V2-B saves the most compute but sacrifices too much accuracy on ARC. **V2-A trades ~3 points of ARC, ~13 points of GSM8K, ~26 points of MMLU for 9× fewer expensive calls.**
 
 ---
 
@@ -80,10 +99,11 @@ The full picture of what was built:
   MMLU — 50 QUESTIONS ACROSS 10 SUBJECTS (GENERAL KNOWLEDGE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Baseline 7B     ████████████████████████░░░░░░░░░░░░░░░░   60.0%
-  V1 Orchestrated ██████████████████████████████░░░░░░░░░░   76.0% ⭐
-  V1 Hybrid       ██████████████████████████████░░░░░░░░░░   76.0% ⭐
+  V1 Orchestrated ██████████████████████████████░░░░░░░░░░   76.0%
+  V1 Hybrid       ██████████████████████████████░░░░░░░░░░   76.0%
   V2-A Sel.Review ██████████████████████████░░░░░░░░░░░░░░   66.0%
   V2-B Cascade    ██████████████████████████░░░░░░░░░░░░░░   66.0%
+  235B alone ⭐   ████████████████████████████████████▓░░░   92.0%
                   0%           25%            50%          75%         100%
 
 
@@ -92,9 +112,10 @@ The full picture of what was built:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Baseline 7B     ██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   26.7%
   V1 Orchestrated ████████████████████████████░░░░░░░░░░░░   70.0%
-  V1 Hybrid       ██████████████████████████████████████▓░   96.7% ⭐
+  V1 Hybrid       ██████████████████████████████████████▓░   96.7%
   V2-A Sel.Review ██████████████████████████████████▓░░░░░   86.7%
   V2-B Cascade    █████████████████████████████████▎░░░░░░   83.3%
+  235B alone ⭐   ████████████████████████████████████████  100.0%
                   0%           25%            50%          75%         100%
 
 
@@ -103,19 +124,21 @@ The full picture of what was built:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Baseline 7B     █████████████████████████████████████▓░░   93.3%
   V1 Orchestrated █████████████████████████████████████▓░░   93.3%
-  V1 Hybrid       ██████████████████████████████████████▓░   96.7% ⭐
+  V1 Hybrid       ██████████████████████████████████████▓░   96.7%
   V2-A Sel.Review █████████████████████████████████████▓░░   93.3%
   V2-B Cascade    ██████████████████████████████░░░░░░░░░░   76.7%
+  235B alone ⭐   ██████████████████████████████████████▓░   96.7%
                   0%           25%            50%          75%         100%
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   COST EFFICIENCY — HOW OFTEN THE EXPENSIVE (235B) MODEL WAS CALLED
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  V1 Orchestrated ████████████████████████████████████████  100%   ← every query
-  V1 Hybrid       ████████████████████████████████████████  100%   ← every query
-  V2-A Sel.Review ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   11%   ← 89% never hit it
-  V2-B Cascade    ███░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    7%   ← 93% never hit it
+  235B alone      ████████████████████████████████████████  100%   ← accuracy ceiling
+  V1 Orchestrated ████████████████████████████████████████  100%   ← same cost, lower accuracy
+  V1 Hybrid       ████████████████████████████████████████  100%   ← same cost, still lower
+  V2-A Sel.Review ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   11%   ← ⭐ 9× fewer expensive calls
+  V2-B Cascade    ███░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    7%   ← cheapest, but ARC weakness
                   0%                  50%                  100%
 ```
 
@@ -178,21 +201,27 @@ The full picture of what was built:
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### The Two Winners
+### What Actually Wins (the honest post-baseline view)
 
-**V1 Hybrid wins on raw accuracy:** 96.7% GSM8K, 96.7% ARC. Uses the 235B model on every question.
+**Accuracy ceiling: Qwen3-235B alone.** MMLU 92%, GSM8K 100%, ARC 96.7%. If accuracy is all that matters, just call the big model. Orchestration offers no benefit here.
 
-**V2-A Selective Review wins on cost-per-quality:** matches V1 Orchestrated on MMLU (66%) and ARC (93%) while calling the 235B model on only **11% of queries** — a 9× reduction in expensive calls for comparable accuracy.
+**Efficiency winner: V2-A Selective Review.** ARC 93% (just 3 points below the ceiling) while calling the 235B on only 11% of queries — a legitimate 9× cost reduction with minimal ARC accuracy loss. On MMLU/GSM8K the accuracy gap widens (13–26 points), so V2-A is most valuable when the downstream cost of queries matters more than peak accuracy.
 
-**V2-B Cascade pushes selectivity further (7% senior invocation)** but at the cost of ARC accuracy, because the 8B Laborer sometimes answers science questions confidently-but-wrongly and never triggers escalation. A known limitation of self-consistency as the sole confidence signal.
+**V1 architectures are dominated.** V1 Orchestrated and V1 Hybrid both use the 235B on every query but fail to match its accuracy (V1 Hybrid falls 16 points short on MMLU). No cost saving, lower accuracy → strictly dominated by simply calling the 235B alone. Kept in this repo as a learning data point.
 
-### Key Insight
+**V2-B Cascade fails the ARC test.** 8B Laborer is confidently wrong ~23% of the time on ARC; self-consistency never catches it, so it never escalates. A real failure mode of self-consistency-as-confidence — and a signpost for V3 (cross-model consistency / semantic entropy).
 
-V1 is "everyone votes on everything." V2 is "triage first, escalate only when needed." Both beat single-model baselines on reasoning tasks. The right choice depends on whether you optimize for peak quality (V1) or cost-per-query (V2).
+### Key Insight (revised)
 
-**Caveat:** V2's cost savings are most valuable on problems where reasoning (not memorization) dominates. For pure-knowledge benchmarks like ARC, the laborer's confident-wrong-answers cap the accuracy ceiling. This is a known tradeoff of cascade architectures.
+The project started with the hypothesis *"orchestration beats single-model."* Running the proper ceiling baseline (Qwen3-235B alone) refuted that for the V1 architectures. The surviving, honest thesis:
 
-Total cost for all experiments: **$0** (Groq + Cerebras free tiers).
+> **V2-A advances the cost/accuracy Pareto frontier.** You can approach the 235B's accuracy — especially on ARC (within 3 points) — while calling the 235B on only 11% of queries.
+
+Whether that tradeoff is worth it depends entirely on deployment economics. For high-volume, cost-sensitive applications, V2-A is a legitimate win. For accuracy-critical one-off queries, just use the 235B.
+
+**What you learned from this project:** running a proper upper-bound baseline matters. Sample size matters. Self-consistency ≠ competence. And an honest "this doesn't work" finding is more valuable than a false "this wins" story.
+
+Total API cost for all experiments: **$0** (Groq + Cerebras free tiers).
 
 ---
 

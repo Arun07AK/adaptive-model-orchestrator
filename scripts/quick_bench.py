@@ -47,6 +47,19 @@ class SingleModelRouter(Router):
         return RoutingDecision(model=model, reason="single-model baseline")
 
 
+class Qwen235BStandaloneRouter(Router):
+    """Upper bound: everything through Qwen3-235B (the best single model).
+
+    This is the critical missing baseline: if 'just call the biggest model
+    every time' matches the orchestrator's accuracy, orchestration adds no value.
+    """
+    def route(self, analysis: TaskAnalysis, prefer_stronger: bool = False) -> RoutingDecision:
+        model = self._registry.get_by_name("qwen3-235b")
+        if model is None:
+            raise ValueError("qwen3-235b must be in registry for standalone baseline")
+        return RoutingDecision(model=model, reason="qwen3-235b standalone baseline")
+
+
 class StrongestRouter(Router):
     """Orchestrated: always route to the strongest model per domain."""
     def route(self, analysis: TaskAnalysis, prefer_stronger: bool = False) -> RoutingDecision:
@@ -71,6 +84,9 @@ def build_pipeline(config: str) -> OrchestratorPipeline:
 
     if config == "single":
         router = SingleModelRouter(registry=registry)
+        enable_esc = False
+    elif config == "qwen235b_standalone":
+        router = Qwen235BStandaloneRouter(registry=registry)
         enable_esc = False
     elif config == "orchestrated":
         router = StrongestRouter(registry=registry)
@@ -479,7 +495,7 @@ async def run_all_benchmarks(config: str) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(description="Quick benchmark runner")
-    parser.add_argument("--config", choices=["single", "orchestrated", "moa", "hybrid", "selective_review", "cascade", "all"],
+    parser.add_argument("--config", choices=["single", "qwen235b_standalone", "orchestrated", "moa", "hybrid", "selective_review", "cascade", "all"],
                         required=True)
     args = parser.parse_args()
 

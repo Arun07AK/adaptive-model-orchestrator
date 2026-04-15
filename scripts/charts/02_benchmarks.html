@@ -89,7 +89,7 @@
     font-family: 'JetBrains Mono', monospace;
     font-size: 14px;
     color: #64748b;
-    margin-bottom: 56px;
+    margin-bottom: 36px;
     letter-spacing: 0.02em;
   }
 
@@ -98,7 +98,7 @@
   .rows {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 14px;
   }
 
   .row {
@@ -130,6 +130,7 @@
   .row-label.v1 .version { color: #ec4899; background: rgba(236,72,153,0.1); border: 1px solid rgba(236,72,153,0.25); }
   .row-label.v2 .version { color: #22d3ee; background: rgba(34,211,238,0.1); border: 1px solid rgba(34,211,238,0.25); }
   .row-label.baseline .version { color: #94a3b8; }
+  .row-label.ceiling .version { color: #ec4899; background: rgba(236,72,153,0.12); border: 1px solid rgba(236,72,153,0.3); }
 
   .bars {
     display: flex;
@@ -214,6 +215,12 @@
     border: 1px solid rgba(34, 211, 238, 0.3);
   }
 
+  .tag.ceiling {
+    background: rgba(236, 72, 153, 0.15);
+    color: #ec4899;
+    border: 1px solid rgba(236, 72, 153, 0.35);
+  }
+
   .legend {
     display: flex;
     justify-content: flex-end;
@@ -270,13 +277,23 @@
   <div class="rows">
 
     <div class="row">
-      <div class="row-label baseline"><span class="version">BASELINE</span>Qwen 2.5 7B</div>
+      <div class="row-label baseline"><span class="version">CHEAP</span>Qwen 2.5 7B</div>
       <div class="bars">
         <div class="bar-row"><span class="bar-name">MMLU</span><div class="bar-track"><div class="bar-fill mmlu" style="width: 60%"></div></div><span class="bar-value">60</span></div>
         <div class="bar-row"><span class="bar-name">GSM8K</span><div class="bar-track"><div class="bar-fill gsm8k" style="width: 26.7%"></div></div><span class="bar-value">27</span></div>
         <div class="bar-row"><span class="bar-name">ARC</span><div class="bar-track"><div class="bar-fill arc" style="width: 93.3%"></div></div><span class="bar-value">93</span></div>
       </div>
       <div></div>
+    </div>
+
+    <div class="row">
+      <div class="row-label ceiling"><span class="version">CEILING</span>Qwen3-235B alone</div>
+      <div class="bars">
+        <div class="bar-row"><span class="bar-name">MMLU</span><div class="bar-track"><div class="bar-fill mmlu" style="width: 92%"></div></div><span class="bar-value">92</span></div>
+        <div class="bar-row"><span class="bar-name">GSM8K</span><div class="bar-track"><div class="bar-fill gsm8k" style="width: 100%"></div></div><span class="bar-value">100</span></div>
+        <div class="bar-row"><span class="bar-name">ARC</span><div class="bar-track"><div class="bar-fill arc" style="width: 96.7%"></div></div><span class="bar-value">97</span></div>
+      </div>
+      <span class="tag ceiling">UPPER BOUND</span>
     </div>
 
     <div class="row">
@@ -296,7 +313,7 @@
         <div class="bar-row"><span class="bar-name">GSM8K</span><div class="bar-track"><div class="bar-fill gsm8k" style="width: 96.7%"></div></div><span class="bar-value">97</span></div>
         <div class="bar-row"><span class="bar-name">ARC</span><div class="bar-track"><div class="bar-fill arc" style="width: 96.7%"></div></div><span class="bar-value">97</span></div>
       </div>
-      <span class="tag peak">PEAK</span>
+      <div></div>
     </div>
 
     <div class="row">
