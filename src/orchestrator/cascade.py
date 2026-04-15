@@ -48,6 +48,106 @@ class SelfConsistencyScorer:
         return [r1, r2], _normalize_answer(r1.text) == _normalize_answer(r2.text)
 
 
+class CrossModelConsistencyScorer:
+    """Runs TWO DIFFERENT models in parallel, checks if they agree.
+
+    Motivation (from Sushant Gagneja's critique):
+    Self-consistency with the same model tests stochastic variance, not
+    competence. A model with a systematic knowledge gap will generate the
+    same wrong answer at both temperatures.
+
+    Cross-model consistency uses architecturally-orthogonal models (e.g., Llama
+    family + Qwen family). They have different training data, different
+    failure modes, so agreement between them is a much stronger signal of
+    correctness than self-agreement.
+    """
+
+    def __init__(self, executor: Executor) -> None:
+        self._executor = executor
+
+    async def score(
+        self, model_a: ModelConfig, model_b: ModelConfig,
+        prompt: str, max_tokens: int = 256,
+    ) -> tuple[list[ExecutionResult], bool]:
+        """Returns (attempts, is_consistent). Both models at temp=0 (deterministic)."""
+        r_a = await self._executor.execute(
+            model=model_a, prompt=prompt, max_tokens=max_tokens, temperature=0.0,
+        )
+        r_b = await self._executor.execute(
+            model=model_b, prompt=prompt, max_tokens=max_tokens, temperature=0.0,
+        )
+        return [r_a, r_b], _normalize_answer(r_a.text) == _normalize_answer(r_b.text)
+
+
+class CrossModelPipeline:
+    """V3: Cross-model consistency. Two architecturally-orthogonal models
+    (Llama + Qwen family) answer in parallel. Escalate only if they disagree.
+
+    Much stronger confidence signal than same-model self-consistency because
+    the two models have different failure modes — a systematic knowledge gap
+    in one is unlikely to be shared by the other.
+    """
+
+    def __init__(
+        self,
+        executor: Executor,
+        model_a: ModelConfig,  # e.g., Llama-3.3-70B (Llama family)
+        model_b: ModelConfig,  # e.g., Qwen3-32B (Qwen family)
+        senior_reviewer: ModelConfig,
+        analyzer,
+    ) -> None:
+        self._executor = executor
+        self._model_a = model_a
+        self._model_b = model_b
+        self._senior = senior_reviewer
+        self._analyzer = analyzer
+        self._scorer = CrossModelConsistencyScorer(executor)
+        self.review_count = 0
+        self.total_count = 0
+
+    async def run(
+        self, prompt: str, subject_hint: str | None = None, max_tokens: int = 256,
+    ) -> OrchestratorResult:
+        self.total_count += 1
+        # Subject hint used for logging consistency with other pipelines
+        _ = self._analyzer.classify(prompt, subject_hint=subject_hint)
+
+        attempts, consistent = await self._scorer.score(
+            self._model_a, self._model_b, prompt, max_tokens,
+        )
+
+        if consistent:
+            # Both models agree - high confidence
+            total_latency = attempts[0].latency_ms + attempts[1].latency_ms
+            return OrchestratorResult(
+                text=attempts[0].text,
+                model_used=f"{self._model_a.name} + {self._model_b.name}",
+                escalated=False,
+                total_latency_ms=total_latency,
+                confidence=1.0,
+            )
+
+        # Models disagree - escalate to senior
+        self.review_count += 1
+        attempts_text = "\n".join(
+            f"Model {attempts[i].model_used}: {_normalize_answer(a.text)}"
+            for i, a in enumerate(attempts)
+        )
+        review_prompt = _REVIEW_PROMPT.format(question=prompt, attempts=attempts_text)
+        review = await self._executor.execute(
+            model=self._senior, prompt=review_prompt, max_tokens=max_tokens,
+        )
+        total_latency = sum(a.latency_ms for a in attempts) + review.latency_ms
+        return OrchestratorResult(
+            text=review.text,
+            model_used=f"{self._model_a.name} + {self._model_b.name} -> {self._senior.name}",
+            escalated=True,
+            escalation_model=self._senior.name,
+            total_latency_ms=total_latency,
+            confidence=0.5,
+        )
+
+
 class SelectiveReviewPipeline:
     """Specialist answers. If uncertain (self-consistency fails), Senior reviewer corrects."""
 

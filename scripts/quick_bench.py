@@ -32,7 +32,7 @@ from src.orchestrator.escalation import EscalationStrategy
 from src.orchestrator.aggregator import Aggregator
 from src.orchestrator.pipeline import OrchestratorPipeline
 from src.orchestrator.moa import MixtureOfAgents
-from src.orchestrator.cascade import SelectiveReviewPipeline, CascadePipeline
+from src.orchestrator.cascade import SelectiveReviewPipeline, CascadePipeline, CrossModelPipeline
 from src.types import Domain, RoutingDecision, TaskAnalysis
 
 
@@ -197,6 +197,29 @@ def build_cascade():
         laborer=registry.get_by_name("llama-3.1-8b"),
         specialist_selector=_select_specialist_fn(registry, laborer_size=8.0),
         senior_reviewer=registry.get_by_name("qwen3-235b"),
+        analyzer=TaskAnalyzer(),
+    )
+
+
+def build_v3_cross_model():
+    """V3: cross-model consistency — architecturally orthogonal models (Llama + Qwen)."""
+    mlx_backend = MLXBackend()
+    api_backend = LiteLLMBackend()
+    registry = ModelRegistry()
+    executor = Executor(backends={
+        "mlx": mlx_backend, "groq": api_backend, "cerebras": api_backend, "together": api_backend,
+    })
+
+    # Architecturally orthogonal generators:
+    model_a = registry.get_by_name("llama-3.3-70b")  # Llama family (Meta), 70B
+    model_b = registry.get_by_name("qwen3-32b")      # Qwen family (Alibaba), 32B
+    senior = registry.get_by_name("qwen3-235b")      # Cerebras ceiling reviewer
+
+    return CrossModelPipeline(
+        executor=executor,
+        model_a=model_a,
+        model_b=model_b,
+        senior_reviewer=senior,
         analyzer=TaskAnalyzer(),
     )
 
@@ -454,6 +477,11 @@ async def run_all_benchmarks(config: str) -> dict:
         mmlu = await run_mmlu(runner, limit_per_subject=5)
         gsm8k = await run_gsm8k(runner, limit=30)
         arc = await run_arc(runner, limit=30)
+    elif config == "v3_cross_model":
+        runner = build_v3_cross_model()
+        mmlu = await run_mmlu(runner, limit_per_subject=5)
+        gsm8k = await run_gsm8k(runner, limit=30)
+        arc = await run_arc(runner, limit=30)
     else:
         if config == "moa":
             runner = build_moa()
@@ -489,13 +517,17 @@ async def run_all_benchmarks(config: str) -> dict:
         print(f"  Senior: {runner.senior_count}/{runner.total_count} ({100*runner.senior_count/runner.total_count:.0f}%)")
     elif config == "selective_review" and "runner" in dir():
         print(f"\nReview rate: {runner.review_count}/{runner.total_count} ({100*runner.review_count/runner.total_count:.0f}%)")
+    elif config == "v3_cross_model" and "runner" in dir():
+        agree_rate = (runner.total_count - runner.review_count) / runner.total_count
+        print(f"\nCross-model agreement rate: {runner.total_count - runner.review_count}/{runner.total_count} ({100*agree_rate:.0f}%)")
+        print(f"Senior review rate: {runner.review_count}/{runner.total_count} ({100*runner.review_count/runner.total_count:.0f}%)")
 
     return results
 
 
 def main():
     parser = argparse.ArgumentParser(description="Quick benchmark runner")
-    parser.add_argument("--config", choices=["single", "qwen235b_standalone", "orchestrated", "moa", "hybrid", "selective_review", "cascade", "all"],
+    parser.add_argument("--config", choices=["single", "qwen235b_standalone", "orchestrated", "moa", "hybrid", "selective_review", "cascade", "v3_cross_model", "all"],
                         required=True)
     args = parser.parse_args()
 

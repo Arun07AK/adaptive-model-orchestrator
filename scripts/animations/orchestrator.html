@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Adaptive Model Orchestrator · Architecture Walkthrough</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0a0a12;
+  --text: #f1f5f9;
+  --dim: #64748b;
+  --border: rgba(255,255,255,0.08);
+  --glass: rgba(255,255,255,0.03);
+  --cyan: #22d3ee;
+  --magenta: #ec4899;
+  --yellow: #fbbf24;
+  --green: #10b981;
+  --red: #f87171;
+  --blue: #60a5fa;
+  --gray: #94a3b8;
+}
+
+html, body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(34, 211, 238, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(236, 72, 153, 0.06) 0%, transparent 50%),
+    linear-gradient(180deg, #0a0a12 0%, #000 100%);
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse at center, black 20%, transparent 80%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Corner markers */
+.corner {
+  position: fixed;
+  width: 32px;
+  height: 32px;
+  border-color: rgba(255,255,255,0.15);
+  border-style: solid;
+  border-width: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+.corner.tl { top: 32px; left: 32px; border-top-width: 1px; border-left-width: 1px; }
+.corner.tr { top: 32px; right: 32px; border-top-width: 1px; border-right-width: 1px; }
+.corner.bl { bottom: 32px; left: 32px; border-bottom-width: 1px; border-left-width: 1px; }
+.corner.br { bottom: 32px; right: 32px; border-bottom-width: 1px; border-right-width: 1px; }
+
+/* Progress bar at top */
+.progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255,255,255,0.05);
+  z-index: 20;
+}
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--cyan), var(--magenta));
+  transition: width 0.25s linear;
+  box-shadow: 0 0 10px rgba(34,211,238,0.5);
+}
+
+/* Scene indicator */
+.scene-indicator {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  color: var(--dim);
+  text-transform: uppercase;
+  z-index: 15;
+}
+
+.scene-indicator .active-scene {
+  color: var(--cyan);
+}
+
+/* Controls */
+.controls {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  z-index: 20;
+  opacity: 0.6;
+  transition: opacity 0.3s;
+}
+.controls:hover { opacity: 1; }
+
+.controls button {
+  padding: 10px 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  background: var(--glass);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+}
+.controls button:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+/* ============ SCENES ============ */
+.scene {
+  position: absolute;
+  inset: 0;
+  padding: 80px 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.scene.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ============ INTRO SCENE ============ */
+.intro-content {
+  text-align: center;
+}
+
+.intro-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  letter-spacing: 0.35em;
+  color: var(--dim);
+  margin-bottom: 24px;
+  text-transform: uppercase;
+}
+
+.intro-label::before, .intro-label::after {
+  content: '';
+  display: inline-block;
+  width: 40px;
+  height: 1px;
+  background: var(--dim);
+  vertical-align: middle;
+  margin: 0 16px;
+  opacity: 0.5;
+}
+
+.intro-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 72px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin-bottom: 20px;
+}
+
+.intro-title .accent {
+  background: linear-gradient(135deg, var(--cyan), var(--magenta));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.intro-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 22px;
+  color: var(--gray);
+  margin-bottom: 60px;
+  line-height: 1.5;
+}
+
+.intro-stats {
+  display: flex;
+  gap: 48px;
+  justify-content: center;
+}
+
+.intro-stat {
+  text-align: center;
+}
+
+.intro-stat .num {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--cyan);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.intro-stat .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--dim);
+  letter-spacing: 0.2em;
+  margin-top: 10px;
+  text-transform: uppercase;
+}
+
+/* ============ ARCHITECTURE SCENES ============ */
+.arch-header {
+  text-align: center;
+  margin-bottom: 40px;
+  animation: slideDown 0.8s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.arch-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  color: var(--dim);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.arch-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.arch-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  color: var(--gray);
+  font-style: italic;
+}
+
+.arch-workspace {
+  width: 100%;
+  max-width: 1100px;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 40px;
+  align-items: start;
+}
+
+.arch-diagram {
+  padding: 40px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  backdrop-filter: blur(16px);
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  position: relative;
+}
+
+.question-display {
+  width: 100%;
+  padding: 16px 20px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 56px;
+  transition: all 0.4s;
+}
+
+.question-display.active {
+  border-color: var(--cyan);
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.15);
+}
+
+.question-display .q-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--cyan);
+  letter-spacing: 0.2em;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+/* Model boxes */
+.model-box {
+  padding: 14px 20px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  backdrop-filter: blur(16px);
+  text-align: center;
+  transition: all 0.4s;
+  position: relative;
+}
+
+.model-box .m-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.model-box .m-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.model-box .m-size {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--dim);
+  margin-top: 3px;
+}
+
+.model-box.active {
+  border-color: var(--cyan);
+  background: rgba(34, 211, 238, 0.06);
+  box-shadow:
+    0 0 40px rgba(34, 211, 238, 0.3),
+    0 0 80px rgba(34, 211, 238, 0.15);
+  transform: scale(1.03);
+}
+
+.model-box.active .m-label { color: var(--cyan); }
+
+.model-box.senior.active {
+  border-color: var(--magenta);
+  background: rgba(236, 72, 153, 0.06);
+  box-shadow:
+    0 0 40px rgba(236, 72, 153, 0.3),
+    0 0 80px rgba(236, 72, 153, 0.15);
+}
+.model-box.senior.active .m-label { color: var(--magenta); }
+
+.model-box.laborer.active {
+  border-color: var(--green);
+  background: rgba(16, 185, 129, 0.06);
+  box-shadow: 0 0 40px rgba(16, 185, 129, 0.25);
+}
+.model-box.laborer.active .m-label { color: var(--green); }
+
+.model-box.spec-v2b.active {
+  border-color: var(--yellow);
+  background: rgba(251, 191, 36, 0.06);
+  box-shadow: 0 0 40px rgba(251, 191, 36, 0.25);
+}
+.model-box.spec-v2b.active .m-label { color: var(--yellow); }
+
+/* Connector arrows */
+.arrow-down {
+  width: 2px;
+  height: 24px;
+  background: linear-gradient(to bottom, var(--border), var(--dim));
+  position: relative;
+}
+.arrow-down::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid var(--dim);
+}
+.arrow-down.active {
+  background: linear-gradient(to bottom, var(--cyan), var(--cyan));
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.4);
+}
+.arrow-down.active::after { border-top-color: var(--cyan); }
+
+/* Parallel models row */
+.parallel-row {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  justify-content: center;
+}
+
+.parallel-row .model-box {
+  flex: 1;
+  padding: 10px 12px;
+}
+.parallel-row .model-box .m-name { font-size: 14px; }
+.parallel-row .model-box .m-size { font-size: 10px; }
+
+/* Self-consistency group wrapper */
+.sc-group {
+  width: 100%;
+  padding: 16px 14px 12px;
+  border: 1px dashed rgba(34, 211, 238, 0.25);
+  border-radius: 12px;
+  background: rgba(34, 211, 238, 0.02);
+  position: relative;
+}
+
+.sc-group::before {
+  content: 'SAME SPECIALIST · 2 SAMPLES AT DIFFERENT TEMPERATURES';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--cyan);
+  background: var(--bg);
+  padding: 2px 12px;
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.sc-group .parallel-row { margin-top: 2px; }
+
+/* Decision diamond */
+.decision {
+  padding: 10px 16px;
+  background: rgba(251, 191, 36, 0.05);
+  border: 1px dashed rgba(251, 191, 36, 0.3);
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--yellow);
+  font-style: italic;
+  text-align: center;
+}
+
+.decision.agree { color: var(--green); border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.05); }
+
+/* Branch display */
+.branch-row {
+  display: flex;
+  gap: 40px;
+  width: 100%;
+  justify-content: space-around;
+  align-items: flex-start;
+}
+
+.branch-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.branch-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.branch-label.yes { color: var(--green); }
+.branch-label.no { color: var(--yellow); }
+
+/* Answer display */
+.answer-display {
+  width: 100%;
+  padding: 14px 20px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: center;
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transition: all 0.4s;
+}
+
+.answer-display.correct {
+  border-color: var(--green);
+  background: rgba(16, 185, 129, 0.06);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+}
+
+.answer-display.wrong {
+  border-color: var(--red);
+  background: rgba(248, 113, 113, 0.06);
+  box-shadow: 0 0 20px rgba(248, 113, 113, 0.15);
+}
+
+.answer-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+
+.answer-value {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.answer-icon {
+  font-size: 22px;
+  font-weight: 700;
+}
+.answer-icon.ok { color: var(--green); }
+.answer-icon.err { color: var(--red); }
+
+/* Summary panel (right side) */
+.arch-summary {
+  padding: 32px 28px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  backdrop-filter: blur(16px);
+  min-height: 420px;
+}
+
+.summary-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  color: var(--dim);
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}
+
+.summary-bar {
+  margin-bottom: 18px;
+}
+
+.summary-bar-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.summary-bar-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--gray);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.summary-bar-value {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.summary-bar-track {
+  height: 8px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.summary-bar-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 3px;
+  transition: width 1s ease;
+}
+
+.summary-bar-fill.mmlu { background: linear-gradient(90deg, #3b82f6, var(--blue)); }
+.summary-bar-fill.gsm { background: linear-gradient(90deg, #06b6d4, var(--cyan)); }
+.summary-bar-fill.arc { background: linear-gradient(90deg, #d97706, var(--yellow)); }
+
+.summary-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 20px 0;
+}
+
+.summary-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summary-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+.summary-meta-row .meta-k { color: var(--dim); letter-spacing: 0.1em; text-transform: uppercase; font-size: 10px; }
+.summary-meta-row .meta-v { color: var(--text); font-weight: 600; }
+
+/* ============ FINAL SCENE ============ */
+.final-content {
+  text-align: center;
+  max-width: 1000px;
+  width: 100%;
+}
+
+.final-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+
+.final-title .accent {
+  background: linear-gradient(135deg, var(--cyan), var(--magenta));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.final-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  color: var(--gray);
+  margin-bottom: 48px;
+}
+
+.pareto-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 32px 40px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  backdrop-filter: blur(16px);
+}
+
+.pareto-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 80px;
+  align-items: center;
+  gap: 20px;
+}
+
+.pareto-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--gray);
+  text-align: left;
+}
+
+.pareto-name.ceiling { color: var(--magenta); font-weight: 600; }
+.pareto-name.winner { color: var(--cyan); font-weight: 600; }
+
+.pareto-track {
+  height: 20px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.pareto-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 4px;
+  transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pareto-fill.baseline { background: #64748b; }
+.pareto-fill.v2b { background: linear-gradient(90deg, #d97706, var(--yellow)); }
+.pareto-fill.v2a { background: linear-gradient(90deg, #06b6d4, var(--cyan)); box-shadow: 0 0 20px rgba(34,211,238,0.4); }
+.pareto-fill.v1 { background: #475569; }
+.pareto-fill.ceiling { background: linear-gradient(90deg, #be185d, var(--magenta)); box-shadow: 0 0 20px rgba(236,72,153,0.4); }
+
+.pareto-avg {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pareto-footnote {
+  margin-top: 28px;
+  padding: 16px 24px;
+  background: rgba(34,211,238,0.05);
+  border: 1px solid rgba(34,211,238,0.25);
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.pareto-footnote .hi-a { color: var(--cyan); font-weight: 600; }
+.pareto-footnote .hi-c { color: var(--magenta); font-weight: 600; }
+
+.gh-link {
+  margin-top: 32px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--dim);
+  letter-spacing: 0.05em;
+}
+.gh-link .arrow { color: var(--cyan); margin-right: 8px; }
+
+/* Small utilities */
+.hidden-init { opacity: 0; transform: translateY(8px); }
+.show { opacity: 1; transform: translateY(0); transition: all 0.4s; }
+
+</style>
+</head>
+
+<body>
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+<div class="scene-indicator"><span id="sceneCur">1</span>/<span id="sceneTot">8</span> · <span class="active-scene" id="sceneName">Intro</span></div>
+
+<!-- =========== INTRO =========== -->
+<div class="scene" id="scene-intro">
+  <div class="intro-content">
+    <div class="intro-label">A Walkthrough</div>
+    <h1 class="intro-title">Adaptive Model<br><span class="accent">Orchestrator</span></h1>
+    <p class="intro-sub">Six architectures. Three benchmark questions.<br>Watch how each handles the same inputs.</p>
+    <div class="intro-stats">
+      <div class="intro-stat"><div class="num">6</div><div class="label">Architectures</div></div>
+      <div class="intro-stat"><div class="num">3</div><div class="label">Benchmarks</div></div>
+      <div class="intro-stat"><div class="num">$0</div><div class="label">API Cost</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- =========== BASELINE =========== -->
+<div class="scene" id="scene-baseline">
+  <div class="arch-header">
+    <div class="arch-eyebrow">Architecture 1 of 6 · Baseline</div>
+    <h2 class="arch-title">Single Model Baseline</h2>
+    <p class="arch-desc">One 7B model answers every question. Cheap, but limited.</p>
+  </div>
+  <div class="arch-workspace">
+    <div class="arch-diagram">
+      <div class="question-display" id="bl-q"><div class="q-label">Question</div><div id="bl-qt">—</div></div>
+      <div class="arrow-down"></div>
+      <div class="model-box" id="bl-model" style="min-width: 280px;">
+        <div class="m-label">Only Model</div>
+        <div class="m-name">Qwen 2.5 7B</div>
+        <div class="m-size">7B · local · 0 API calls</div>
+      </div>
+      <div class="arrow-down"></div>
+      <div class="answer-display" id="bl-a"><div class="answer-label">Answer</div><span class="answer-value">—</span></div>
+    </div>
+    <div class="arch-summary">
+      <div class="summary-label">Benchmark Results</div>
+      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">60%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="60"></div></div></div>
+      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">27%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="27"></div></div></div>
+      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">93%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="93"></div></div></div>
+      <div class="summary-divider"></div>
+      <div class="summary-meta">
+        <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v">0%</span></div>
+        <div class="summary-meta-row"><span class="meta-k">Role</span><span class="meta-v">Lower bound</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========== V1 ORCHESTRATED =========== -->
+<div class="scene" id="scene-v1orch">
+  <div class="arch-header">
+    <div class="arch-eyebrow">Architecture 2 of 6 · V1</div>
+    <h2 class="arch-title">Orchestrated (routing)</h2>
+    <p class="arch-desc">Classify the question, route to the domain specialist.</p>
+  </div>
+  <div class="arch-workspace">
+    <div class="arch-diagram">
+      <div class="question-display" id="v1o-q"><div class="q-label">Question</div><div id="v1o-qt">—</div></div>
+      <div class="arrow-down"></div>
+      <div class="model-box" style="min-width: 260px;">
+        <div class="m-label">Classifier</div>
+        <div class="m-name">Domain Router</div>
+        <div class="m-size">math · code · general</div>
+      </div>
+      <div class="arrow-down"></div>
+      <div class="parallel-row">
+        <div class="model-box" id="v1o-math"><div class="m-label">Math</div><div class="m-name">Qwen3-32B</div><div class="m-size">32B · Groq</div></div>
+        <div class="model-box" id="v1o-code"><div class="m-label">Code</div><div class="m-name">Llama-4-Scout</div><div class="m-size">17B · Groq</div></div>
+        <div class="model-box" id="v1o-gen"><div class="m-label">General</div><div class="m-name">Llama-3.3-70B</div><div class="m-size">70B · Groq</div></div>
+      </div>
+      <div class="arrow-down"></div>
+      <div class="answer-display" id="v1o-a"><div class="answer-label">Answer</div><span class="answer-value">—</span></div>
+    </div>
+    <div class="arch-summary">
+      <div class="summary-label">Benchmark Results</div>
+      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">76%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="76"></div></div></div>
+      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">70%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="70"></div></div></div>
+      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">93%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="93"></div></div></div>
+      <div class="summary-divider"></div>
+      <div class="summary-meta">
+        <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v">100%</span></div>
+        <div class="summary-meta-row"><span class="meta-k">Role</span><span class="meta-v">Routing only</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========== V1 HYBRID =========== -->
+<div class="scene" id="scene-v1hyb">
+  <div class="arch-header">
+    <div class="arch-eyebrow">Architecture 3 of 6 · V1</div>
+    <h2 class="arch-title">Hybrid — Mixture of Agents</h2>
+    <p class="arch-desc">Math questions fan out to 3 proposers; a 235B aggregator synthesizes.</p>
+  </div>
+  <div class="arch-workspace">
+    <div class="arch-diagram">
+      <div class="question-display" id="v1h-q"><div class="q-label">Question</div><div id="v1h-qt">—</div></div>
+      <div class="arrow-down"></div>
+      <div class="parallel-row">
+        <div class="model-box" id="v1h-p1"><div class="m-label">Proposer</div><div class="m-name">Qwen3-32B</div><div class="m-size">32B</div></div>
+        <div class="model-box" id="v1h-p2"><div class="m-label">Proposer</div><div class="m-name">Llama-3.3-70B</div><div class="m-size">70B</div></div>
+        <div class="model-box" id="v1h-p3"><div class="m-label">Proposer</div><div class="m-name">Llama-3.1-8B</div><div class="m-size">8B</div></div>
+      </div>
+      <div class="arrow-down"></div>
+      <div class="model-box senior" id="v1h-agg" style="min-width: 280px;">
+        <div class="m-label">Aggregator</div>
+        <div class="m-name">Qwen3-235B</div>
+        <div class="m-size">235B · Cerebras</div>
+      </div>
+      <div class="arrow-down"></div>
+      <div class="answer-display" id="v1h-a"><div class="answer-label">Answer</div><span class="answer-value">—</span></div>
+    </div>
+    <div class="arch-summary">
+      <div class="summary-label">Benchmark Results</div>
+      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">76%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="76"></div></div></div>
+      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">97%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="97"></div></div></div>
+      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">97%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="97"></div></div></div>
+      <div class="summary-divider"></div>
+      <div class="summary-meta">
+        <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v">100%</span></div>
+        <div class="summary-meta-row"><span class="meta-k">Role</span><span class="meta-v">Uses ceiling every query</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========== V2-A SELECTIVE REVIEW =========== -->
+<div class="scene" id="scene-v2a">
+  <div class="arch-header">
+    <div class="arch-eyebrow">Architecture 4 of 6 · V2-A ⭐</div>
+    <h2 class="arch-title">Selective Review (the original idea)</h2>
+    <p class="arch-desc">Specialist answers twice. Only if it disagrees with itself, senior reviewer intervenes.</p>
+  </div>
+  <div class="arch-workspace">
+    <div class="arch-diagram">
+      <div class="question-display" id="v2a-q"><div class="q-label">Question</div><div id="v2a-qt">—</div></div>
+      <div class="arrow-down"></div>
+      <div class="sc-group">
+        <div class="parallel-row">
+          <div class="model-box" id="v2a-s1"><div class="m-label">Sample 1</div><div class="m-name">Domain specialist</div><div class="m-size">temp = 0.0</div></div>
+          <div class="model-box" id="v2a-s2"><div class="m-label">Sample 2</div><div class="m-name">Domain specialist</div><div class="m-size">temp = 0.5</div></div>
+        </div>
+      </div>
+      <div class="arrow-down"></div>
+      <div class="decision" id="v2a-dec">self-consistency check · do samples agree?</div>
+      <div class="arrow-down"></div>
+      <div class="model-box senior" id="v2a-senior" style="min-width: 280px;">
+        <div class="m-label">Senior (if disagree)</div>
+        <div class="m-name">Qwen3-235B</div>
+        <div class="m-size">235B · called on 11%</div>
+      </div>
+      <div class="arrow-down"></div>
+      <div class="answer-display" id="v2a-a"><div class="answer-label">Answer</div><span class="answer-value">—</span></div>
+    </div>
+    <div class="arch-summary">
+      <div class="summary-label">Benchmark Results</div>
+      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">66%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="66"></div></div></div>
+      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">87%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="87"></div></div></div>
+      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">93%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="93"></div></div></div>
+      <div class="summary-divider"></div>
+      <div class="summary-meta">
+        <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v" style="color: var(--cyan)">11% ⭐</span></div>
+        <div class="summary-meta-row"><span class="meta-k">Role</span><span class="meta-v">Efficient sweet spot</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========== V2-B CASCADE =========== -->
+<div class="scene" id="scene-v2b">
+  <div class="arch-header">
+    <div class="arch-eyebrow">Architecture 5 of 6 · V2-B</div>
+    <h2 class="arch-title">Cascade — 3-tier</h2>
+    <p class="arch-desc">Laborer → Specialist → Senior. Only escalate on disagreement at each tier.</p>
+  </div>
+  <div class="arch-workspace">
+    <div class="arch-diagram">
+      <div class="question-display" id="v2b-q"><div class="q-label">Question</div><div id="v2b-qt">—</div></div>
+      <div class="arrow-down"></div>
+      <div class="model-box laborer" id="v2b-lab" style="min-width: 280px;"><div class="m-label">Tier 1 · Laborer</div><div class="m-name">Llama-3.1-8B</div><div class="m-size">8B · handles 100%</div></div>
+      <div class="arrow-down"></div>
+      <div class="model-box spec-v2b" id="v2b-spec" style="min-width: 280px;"><div class="m-label">Tier 2 · Specialist</div><div class="m-name">Domain-matched</div><div class="m-size">17–70B · called on 18%</div></div>
+      <div class="arrow-down"></div>
+      <div class="model-box senior" id="v2b-sen" style="min-width: 280px;"><div class="m-label">Tier 3 · Senior</div><div class="m-name">Qwen3-235B</div><div class="m-size">235B · called on 7%</div></div>
+      <div class="arrow-down"></div>
+      <div class="answer-display" id="v2b-a"><div class="answer-label">Answer</div><span class="answer-value">—</span></div>
+    </div>
+    <div class="arch-summary">
+      <div class="summary-label">Benchmark Results</div>
+      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">66%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="66"></div></div></div>
+      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">83%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="83"></div></div></div>
+      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">77%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="77"></div></div></div>
+      <div class="summary-divider"></div>
+      <div class="summary-meta">
+        <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v" style="color: var(--yellow)">7%</span></div>
+        <div class="summary-meta-row"><span class="meta-k">Caveat</span><span class="meta-v" style="color: var(--red)">ARC weakness</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========== 235B CEILING =========== -->
+<div class="scene" id="scene-ceiling">
+  <div class="arch-header">
+    <div class="arch-eyebrow">Architecture 6 of 6 · Ceiling</div>
+    <h2 class="arch-title">Qwen3-235B alone</h2>
+    <p class="arch-desc">The upper-bound baseline. Call the biggest model every time.</p>
+  </div>
+  <div class="arch-workspace">
+    <div class="arch-diagram">
+      <div class="question-display" id="c-q"><div class="q-label">Question</div><div id="c-qt">—</div></div>
+      <div class="arrow-down"></div>
+      <div class="model-box senior" id="c-model" style="min-width: 340px; padding: 24px 28px;">
+        <div class="m-label">Ceiling Model</div>
+        <div class="m-name" style="font-size: 26px;">Qwen3-235B</div>
+        <div class="m-size">235B · Cerebras · 100% of calls</div>
+      </div>
+      <div class="arrow-down"></div>
+      <div class="answer-display" id="c-a"><div class="answer-label">Answer</div><span class="answer-value">—</span></div>
+    </div>
+    <div class="arch-summary">
+      <div class="summary-label">Benchmark Results</div>
+      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">MMLU</span><span class="summary-bar-value">92%</span></div><div class="summary-bar-track"><div class="summary-bar-fill mmlu" data-val="92"></div></div></div>
+      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">GSM8K</span><span class="summary-bar-value">100%</span></div><div class="summary-bar-track"><div class="summary-bar-fill gsm" data-val="100"></div></div></div>
+      <div class="summary-bar"><div class="summary-bar-head"><span class="summary-bar-name">ARC</span><span class="summary-bar-value">97%</span></div><div class="summary-bar-track"><div class="summary-bar-fill arc" data-val="97"></div></div></div>
+      <div class="summary-divider"></div>
+      <div class="summary-meta">
+        <div class="summary-meta-row"><span class="meta-k">235B Calls</span><span class="meta-v" style="color: var(--magenta)">100% (max)</span></div>
+        <div class="summary-meta-row"><span class="meta-k">Role</span><span class="meta-v">Upper bound</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========== FINAL =========== -->
+<div class="scene" id="scene-final">
+  <div class="final-content">
+    <h1 class="final-title">The Pareto Frontier<br>of <span class="accent">cost vs accuracy</span></h1>
+    <p class="final-sub">Average accuracy across MMLU + GSM8K + ARC</p>
+    <div class="pareto-chart">
+      <div class="pareto-row">
+        <div class="pareto-name">Qwen 7B baseline</div>
+        <div class="pareto-track"><div class="pareto-fill baseline" data-val="60"></div></div>
+        <div class="pareto-avg">60%</div>
+      </div>
+      <div class="pareto-row">
+        <div class="pareto-name">V2-B Cascade</div>
+        <div class="pareto-track"><div class="pareto-fill v2b" data-val="75"></div></div>
+        <div class="pareto-avg">75%</div>
+      </div>
+      <div class="pareto-row">
+        <div class="pareto-name winner">V2-A Selective ⭐</div>
+        <div class="pareto-track"><div class="pareto-fill v2a" data-val="82"></div></div>
+        <div class="pareto-avg">82%</div>
+      </div>
+      <div class="pareto-row">
+        <div class="pareto-name">V1 Orchestrated</div>
+        <div class="pareto-track"><div class="pareto-fill v1" data-val="80"></div></div>
+        <div class="pareto-avg">80%</div>
+      </div>
+      <div class="pareto-row">
+        <div class="pareto-name">V1 Hybrid MoA</div>
+        <div class="pareto-track"><div class="pareto-fill v1" data-val="90"></div></div>
+        <div class="pareto-avg">90%</div>
+      </div>
+      <div class="pareto-row">
+        <div class="pareto-name ceiling">Qwen3-235B alone</div>
+        <div class="pareto-track"><div class="pareto-fill ceiling" data-val="96"></div></div>
+        <div class="pareto-avg">96%</div>
+      </div>
+    </div>
+    <div class="pareto-footnote">
+      <span class="hi-a">V2-A</span> reaches within <span class="hi-c">14 points</span> of the 235B ceiling<br>
+      while calling the ceiling model on only 11% of queries.
+    </div>
+    <div class="gh-link"><span class="arrow">→</span>github.com/Arun07AK/adaptive-model-orchestrator</div>
+  </div>
+</div>
+
+<div class="controls">
+  <button onclick="prevScene()">← Prev</button>
+  <button onclick="togglePlay()" id="playBtn">⏸ Pause</button>
+  <button onclick="nextScene()">Next →</button>
+  <button onclick="restart()">Restart</button>
+</div>
+
+<script>
+// ============== QUESTIONS ==============
+const QUESTIONS = [
+  {
+    type: 'MMLU',
+    text: 'Which vitamin is fat-soluble?  A) Vitamin C  B) B12  C) Vitamin D  D) B1',
+    correct: 'C',
+    results: {
+      baseline: 'B',    // wrong → Qwen 7B gets this wrong sometimes
+      v1orch:   'C',    // correct
+      v1hyb:    'C',    // correct
+      v2a:      'C',    // correct
+      v2b:      'C',    // correct
+      ceiling:  'C',    // correct
+    }
+  },
+  {
+    type: 'GSM8K',
+    text: 'Natalia sold clips to 48 friends in April, half as many in May. How many total?',
+    correct: '72',
+    results: {
+      baseline: '48',   // wrong (7B struggles with math)
+      v1orch:   '72',   // correct (routes to Qwen3-32B math specialist)
+      v1hyb:    '72',   // correct (MoA aggregates to right answer)
+      v2a:      '72',   // correct
+      v2b:      '72',   // correct (laborer may get this; if not, escalates)
+      ceiling:  '72',   // correct
+    }
+  },
+  {
+    type: 'ARC',
+    text: 'George wants to warm his hands by rubbing them. Which surface produces most heat? A) dry B) wet C) oily D) lotioned',
+    correct: 'A',
+    results: {
+      baseline: 'A',    // correct
+      v1orch:   'A',    // correct
+      v1hyb:    'A',    // correct
+      v2a:      'A',    // correct
+      v2b:      'B',    // WRONG — showcases V2-B's ARC failure mode
+      ceiling:  'A',    // correct
+    }
+  },
+];
+
+// ============== SCENES ==============
+const SCENES = [
+  { id: 'intro',    name: 'Intro',            duration: 5000,  run: runIntro },
+  { id: 'baseline', name: 'Baseline',         duration: 17000, run: runBaseline },
+  { id: 'v1orch',   name: 'V1 Orchestrated',  duration: 17000, run: runV1Orch },
+  { id: 'v1hyb',    name: 'V1 Hybrid (MoA)',  duration: 17000, run: runV1Hyb },
+  { id: 'v2a',      name: 'V2-A ⭐',          duration: 17000, run: runV2a },
+  { id: 'v2b',      name: 'V2-B Cascade',     duration: 17000, run: runV2b },
+  { id: 'ceiling',  name: '235B Ceiling',     duration: 17000, run: runCeiling },
+  { id: 'final',    name: 'Pareto Frontier',  duration: 12000, run: runFinal },
+];
+
+let currentScene = 0;
+let isPlaying = true;
+let sceneStartTime = 0;
+let sceneTimeout = null;
+let progressInterval = null;
+let activeTimers = [];
+
+// Utility to schedule actions and clean up on scene exit
+function schedule(fn, delay) {
+  const t = setTimeout(fn, delay);
+  activeTimers.push(t);
+  return t;
+}
+function clearAllTimers() {
+  activeTimers.forEach(t => clearTimeout(t));
+  activeTimers = [];
+  if (sceneTimeout) clearTimeout(sceneTimeout);
+  if (progressInterval) clearInterval(progressInterval);
+}
+
+function setActive(sceneIdx) {
+  clearAllTimers();
+  document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+  const scene = SCENES[sceneIdx];
+  const el = document.getElementById('scene-' + scene.id);
+  if (!el) return;
+  el.classList.add('active');
+  document.getElementById('sceneCur').textContent = sceneIdx + 1;
+  document.getElementById('sceneTot').textContent = SCENES.length;
+  document.getElementById('sceneName').textContent = scene.name;
+
+  // Reset UI for this scene
+  resetSceneElements(scene.id);
+
+  // Progress bar
+  sceneStartTime = Date.now();
+  const duration = scene.duration;
+  progressInterval = setInterval(() => {
+    const elapsed = Date.now() - sceneStartTime;
+    const pct = Math.min(100, (elapsed / duration) * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+  }, 50);
+
+  // Run scene-specific animations
+  scene.run();
+
+  // Auto-advance
+  if (isPlaying) {
+    sceneTimeout = setTimeout(() => {
+      nextScene();
+    }, duration);
+  }
+}
+
+function nextScene() {
+  currentScene = (currentScene + 1) % SCENES.length;
+  setActive(currentScene);
+}
+function prevScene() {
+  currentScene = (currentScene - 1 + SCENES.length) % SCENES.length;
+  setActive(currentScene);
+}
+function togglePlay() {
+  isPlaying = !isPlaying;
+  document.getElementById('playBtn').textContent = isPlaying ? '⏸ Pause' : '▶ Play';
+  if (isPlaying) {
+    setActive(currentScene);
+  } else {
+    clearAllTimers();
+  }
+}
+function restart() {
+  currentScene = 0;
+  isPlaying = true;
+  document.getElementById('playBtn').textContent = '⏸ Pause';
+  setActive(0);
+}
+
+function resetSceneElements(sceneId) {
+  // Reset bars
+  document.querySelectorAll('.summary-bar-fill, .pareto-fill').forEach(b => {
+    b.style.width = '0';
+  });
+  // Remove active classes
+  document.querySelectorAll('.model-box').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.arrow-down').forEach(a => a.classList.remove('active'));
+  document.querySelectorAll('.question-display').forEach(q => q.classList.remove('active'));
+  // Reset answer displays
+  document.querySelectorAll('.answer-display').forEach(a => {
+    a.classList.remove('correct', 'wrong');
+    const val = a.querySelector('.answer-value');
+    const icon = a.querySelector('.answer-icon');
+    if (val) val.textContent = '—';
+    if (icon) icon.remove();
+  });
+  // Reset question text displays
+  const qt = document.querySelectorAll('[id$="-qt"]');
+  qt.forEach(el => el.textContent = '—');
+}
+
+// ============== SCENE RUNNERS ==============
+
+function runIntro() {
+  // Animate counter pulses
+  // (content is static; the eye moves to stats via CSS)
+}
+
+function runBaseline() {
+  // Animate summary bars to fill
+  schedule(() => animateBars('#scene-baseline'), 200);
+
+  const id = 'bl';
+  const delays = [0, 5000, 10000]; // start of each question
+  QUESTIONS.forEach((q, i) => {
+    schedule(() => runSimpleFlow(id, q, 'baseline'), delays[i]);
+  });
+}
+
+function runV1Orch() {
+  schedule(() => animateBars('#scene-v1orch'), 200);
+
+  const delays = [0, 5000, 10000];
+  QUESTIONS.forEach((q, i) => {
+    schedule(() => runV1OrchFlow(q), delays[i]);
+  });
+}
+
+function runV1Hyb() {
+  schedule(() => animateBars('#scene-v1hyb'), 200);
+
+  const delays = [0, 5000, 10000];
+  QUESTIONS.forEach((q, i) => {
+    schedule(() => runV1HybFlow(q), delays[i]);
+  });
+}
+
+function runV2a() {
+  schedule(() => animateBars('#scene-v2a'), 200);
+
+  const delays = [0, 5000, 10000];
+  QUESTIONS.forEach((q, i) => {
+    schedule(() => runV2aFlow(q), delays[i]);
+  });
+}
+
+function runV2b() {
+  schedule(() => animateBars('#scene-v2b'), 200);
+
+  const delays = [0, 5000, 10000];
+  QUESTIONS.forEach((q, i) => {
+    schedule(() => runV2bFlow(q), delays[i]);
+  });
+}
+
+function runCeiling() {
+  schedule(() => animateBars('#scene-ceiling'), 200);
+
+  const delays = [0, 5000, 10000];
+  QUESTIONS.forEach((q, i) => {
+    schedule(() => runSimpleFlow('c', q, 'ceiling'), delays[i]);
+  });
+}
+
+function runFinal() {
+  // Animate Pareto bars with staggered fills
+  const bars = document.querySelectorAll('#scene-final .pareto-fill');
+  bars.forEach((bar, i) => {
+    schedule(() => {
+      const v = bar.dataset.val;
+      bar.style.width = v + '%';
+    }, 300 + i * 180);
+  });
+}
+
+// ============== FLOW HELPERS ==============
+
+function showQuestion(qEl, qtEl, q) {
+  qEl.classList.add('active');
+  qtEl.textContent = `[${q.type}] ${q.text}`;
+}
+
+function showAnswer(ansEl, q, answered, isCorrect) {
+  ansEl.classList.remove('correct', 'wrong');
+  ansEl.classList.add(isCorrect ? 'correct' : 'wrong');
+  const valEl = ansEl.querySelector('.answer-value');
+  valEl.textContent = answered;
+  // Add icon
+  let icon = ansEl.querySelector('.answer-icon');
+  if (!icon) {
+    icon = document.createElement('span');
+    icon.className = 'answer-icon';
+    ansEl.appendChild(icon);
+  }
+  icon.className = 'answer-icon ' + (isCorrect ? 'ok' : 'err');
+  icon.textContent = isCorrect ? '✓' : '✗';
+}
+
+function pulseModel(elId, onTime = 2000) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.classList.add('active');
+  schedule(() => el.classList.remove('active'), onTime);
+}
+
+function activateArrow(arrow, onTime = 2000) {
+  if (!arrow) return;
+  arrow.classList.add('active');
+  schedule(() => arrow.classList.remove('active'), onTime);
+}
+
+// Simple flow: Question → one model → answer (baseline & ceiling)
+function runSimpleFlow(idPrefix, q, configKey) {
+  const qEl = document.getElementById(`${idPrefix}-q`);
+  const qtEl = document.getElementById(`${idPrefix}-qt`);
+  const modelEl = document.getElementById(`${idPrefix}-model`);
+  const ansEl = document.getElementById(`${idPrefix}-a`);
+  const scene = qEl.closest('.scene');
+  const arrows = scene.querySelectorAll('.arrow-down');
+
+  schedule(() => showQuestion(qEl, qtEl, q), 0);
+  schedule(() => activateArrow(arrows[0], 3500), 400);
+  schedule(() => modelEl.classList.add('active'), 900);
+  schedule(() => activateArrow(arrows[1], 2000), 2500);
+  schedule(() => {
+    modelEl.classList.remove('active');
+    const answered = q.results[configKey];
+    const correct = answered === q.correct;
+    showAnswer(ansEl, q, answered, correct);
+  }, 3000);
+}
+
+function runV1OrchFlow(q) {
+  const qEl = document.getElementById('v1o-q');
+  const qtEl = document.getElementById('v1o-qt');
+  const ansEl = document.getElementById('v1o-a');
+  const scene = document.getElementById('scene-v1orch');
+  const arrows = scene.querySelectorAll('.arrow-down');
+
+  // Pick specialist by question type
+  let specialistId = 'v1o-gen';
+  if (q.type === 'GSM8K') specialistId = 'v1o-math';
+  // MMLU + ARC → general in this simplified demo
+
+  schedule(() => showQuestion(qEl, qtEl, q), 0);
+  schedule(() => activateArrow(arrows[0], 3500), 400);
+  schedule(() => activateArrow(arrows[1], 2800), 1200);
+  // Classifier pulses then routes
+  schedule(() => pulseModel(specialistId, 2000), 1700);
+  schedule(() => activateArrow(arrows[2], 1500), 3000);
+  schedule(() => {
+    showAnswer(ansEl, q, q.results.v1orch, q.results.v1orch === q.correct);
+  }, 3600);
+}
+
+function runV1HybFlow(q) {
+  const qEl = document.getElementById('v1h-q');
+  const qtEl = document.getElementById('v1h-qt');
+  const ansEl = document.getElementById('v1h-a');
+  const scene = document.getElementById('scene-v1hyb');
+  const arrows = scene.querySelectorAll('.arrow-down');
+
+  schedule(() => showQuestion(qEl, qtEl, q), 0);
+  schedule(() => activateArrow(arrows[0], 3500), 400);
+  // All 3 proposers pulse in parallel
+  schedule(() => {
+    pulseModel('v1h-p1', 1800);
+    pulseModel('v1h-p2', 1800);
+    pulseModel('v1h-p3', 1800);
+  }, 900);
+  schedule(() => activateArrow(arrows[1], 2500), 2400);
+  schedule(() => document.getElementById('v1h-agg').classList.add('active'), 2900);
+  schedule(() => activateArrow(arrows[2], 1500), 3800);
+  schedule(() => {
+    document.getElementById('v1h-agg').classList.remove('active');
+    showAnswer(ansEl, q, q.results.v1hyb, q.results.v1hyb === q.correct);
+  }, 4300);
+}
+
+function runV2aFlow(q) {
+  const qEl = document.getElementById('v2a-q');
+  const qtEl = document.getElementById('v2a-qt');
+  const ansEl = document.getElementById('v2a-a');
+  const decEl = document.getElementById('v2a-dec');
+  const scene = document.getElementById('scene-v2a');
+  const arrows = scene.querySelectorAll('.arrow-down');
+
+  // V2-A: most questions handled by specialist; on "uncertain" (GSM8K in this demo), senior reviews
+  const escalates = (q.type === 'GSM8K');
+
+  schedule(() => showQuestion(qEl, qtEl, q), 0);
+  schedule(() => activateArrow(arrows[0], 3500), 400);
+  // Both specialist attempts pulse in parallel
+  schedule(() => {
+    pulseModel('v2a-s1', 1600);
+    pulseModel('v2a-s2', 1600);
+  }, 900);
+  schedule(() => activateArrow(arrows[1], 1800), 2300);
+  // Decision
+  schedule(() => {
+    decEl.classList.remove('agree');
+    if (!escalates) {
+      decEl.textContent = '✓ attempts agree · return';
+      decEl.classList.add('agree');
+    } else {
+      decEl.textContent = '✗ disagree · escalate';
+    }
+  }, 2700);
+
+  if (escalates) {
+    schedule(() => activateArrow(arrows[2], 2000), 3600);
+    schedule(() => document.getElementById('v2a-senior').classList.add('active'), 3900);
+    schedule(() => activateArrow(arrows[3], 1500), 5200);
+    schedule(() => {
+      document.getElementById('v2a-senior').classList.remove('active');
+      showAnswer(ansEl, q, q.results.v2a, q.results.v2a === q.correct);
+    }, 5400);
+  } else {
+    // Skip senior, go straight to answer
+    schedule(() => activateArrow(arrows[3], 1500), 3000);
+    schedule(() => {
+      showAnswer(ansEl, q, q.results.v2a, q.results.v2a === q.correct);
+    }, 3700);
+  }
+}
+
+function runV2bFlow(q) {
+  const qEl = document.getElementById('v2b-q');
+  const qtEl = document.getElementById('v2b-qt');
+  const ansEl = document.getElementById('v2b-a');
+  const scene = document.getElementById('scene-v2b');
+  const arrows = scene.querySelectorAll('.arrow-down');
+
+  // V2-B: laborer tries; escalates for GSM8K; for ARC laborer is "confidently wrong" → returns wrong
+  const escalatesToSpec = (q.type === 'GSM8K');
+  const escalatesToSenior = (q.type === 'GSM8K');
+  const laborerConfidentWrong = (q.type === 'ARC' && q.results.v2b !== q.correct);
+
+  schedule(() => showQuestion(qEl, qtEl, q), 0);
+  schedule(() => activateArrow(arrows[0], 3500), 400);
+  schedule(() => pulseModel('v2b-lab', 1800), 900);
+
+  if (escalatesToSpec) {
+    schedule(() => activateArrow(arrows[1], 2000), 2200);
+    schedule(() => pulseModel('v2b-spec', 1600), 2600);
+
+    if (escalatesToSenior) {
+      schedule(() => activateArrow(arrows[2], 2000), 3800);
+      schedule(() => pulseModel('v2b-sen', 1500), 4100);
+      schedule(() => activateArrow(arrows[3], 1500), 5200);
+      schedule(() => {
+        showAnswer(ansEl, q, q.results.v2b, q.results.v2b === q.correct);
+      }, 5500);
+    } else {
+      schedule(() => activateArrow(arrows[3], 1500), 4000);
+      schedule(() => {
+        showAnswer(ansEl, q, q.results.v2b, q.results.v2b === q.correct);
+      }, 4500);
+    }
+  } else {
+    // Laborer returns (correctly or confidently wrong)
+    schedule(() => activateArrow(arrows[3], 1500), 2200);
+    schedule(() => {
+      showAnswer(ansEl, q, q.results.v2b, q.results.v2b === q.correct);
+    }, 2800);
+  }
+}
+
+function animateBars(sceneSelector) {
+  const bars = document.querySelectorAll(sceneSelector + ' .summary-bar-fill');
+  bars.forEach((bar, i) => {
+    schedule(() => {
+      bar.style.width = bar.dataset.val + '%';
+    }, 100 + i * 120);
+  });
+}
+
+// ============== INIT ==============
+window.addEventListener('DOMContentLoaded', () => {
+  setActive(0);
+});
+</script>
+</body>
+</html>
