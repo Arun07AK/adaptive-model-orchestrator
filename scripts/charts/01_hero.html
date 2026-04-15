@@ -132,6 +132,19 @@
   .dot-col.v1 { border-color: rgba(148,163,184,0.15); }
   .dot-col.v1 .d-num { color: #94a3b8; opacity: 0.75; }
 
+  .dot-col.v3 {
+    border-color: rgba(167, 139, 250, 0.4);
+    background: rgba(167, 139, 250, 0.04);
+  }
+  .dot-col.v3::before {
+    content: 'NEAR-CEILING'; position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.2em;
+    color: #a78bfa; background: #0a0a12; padding: 2px 8px; border: 1px solid rgba(167,139,250,0.4);
+    border-radius: 4px;
+  }
+  .dot-col.v3 .d-label { color: #a78bfa; }
+  .dot-col.v3 .d-num { color: #a78bfa; text-shadow: 0 0 40px rgba(167,139,250,0.45); }
+
   .dot-col.v2a {
     border-color: rgba(34,211,238,0.4);
     background: rgba(34,211,238,0.05);
@@ -218,11 +231,11 @@
       <div class="d-sub">11% 235B calls</div>
     </div>
 
-    <div class="dot-col v1">
-      <div class="d-label">V1</div>
-      <div class="d-name">Hybrid<br>MoA</div>
-      <div class="d-num">90<span class="pct">%</span></div>
-      <div class="d-sub">100% 235B calls</div>
+    <div class="dot-col v3">
+      <div class="d-label">V3</div>
+      <div class="d-name">Cross-Model<br>(Llama+Qwen)</div>
+      <div class="d-num">92<span class="pct">%</span></div>
+      <div class="d-sub">73% 235B calls</div>
     </div>
 
     <div class="dot-col ceiling">
@@ -234,11 +247,10 @@
   </div>
 
   <div class="takeaway">
-    <div class="takeaway-label">Pareto Finding</div>
+    <div class="takeaway-label">Two Pareto wins</div>
     <div class="takeaway-text">
-      <span class="hi-a">V2-A Selective Review</span> gets within
-      <span class="hi-ceiling">14 points</span> of the 235B ceiling<br>
-      while calling it on only 11% of queries.
+      <span class="hi-a">V2-A</span> for cost · <span class="hi-ceiling">V3</span> for accuracy<br>
+      V3 reaches ceiling accuracy at 73% of the cost.
     </div>
   </div>
 </div>

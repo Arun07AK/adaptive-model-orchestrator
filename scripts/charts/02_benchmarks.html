@@ -131,6 +131,7 @@
   .row-label.v2 .version { color: #22d3ee; background: rgba(34,211,238,0.1); border: 1px solid rgba(34,211,238,0.25); }
   .row-label.baseline .version { color: #94a3b8; }
   .row-label.ceiling .version { color: #ec4899; background: rgba(236,72,153,0.12); border: 1px solid rgba(236,72,153,0.3); }
+  .row-label.v3 .version { color: #a78bfa; background: rgba(167,139,250,0.12); border: 1px solid rgba(167,139,250,0.35); }
 
   .bars {
     display: flex;
@@ -219,6 +220,12 @@
     background: rgba(236, 72, 153, 0.15);
     color: #ec4899;
     border: 1px solid rgba(236, 72, 153, 0.35);
+  }
+
+  .tag.v3 {
+    background: rgba(167, 139, 250, 0.15);
+    color: #a78bfa;
+    border: 1px solid rgba(167, 139, 250, 0.35);
   }
 
   .legend {
@@ -334,6 +341,16 @@
         <div class="bar-row"><span class="bar-name">ARC</span><div class="bar-track"><div class="bar-fill arc" style="width: 76.7%"></div></div><span class="bar-value">77</span></div>
       </div>
       <div></div>
+    </div>
+
+    <div class="row">
+      <div class="row-label v3"><span class="version">V3</span>Cross-Model</div>
+      <div class="bars">
+        <div class="bar-row"><span class="bar-name">MMLU</span><div class="bar-track"><div class="bar-fill mmlu" style="width: 84%"></div></div><span class="bar-value">84</span></div>
+        <div class="bar-row"><span class="bar-name">GSM8K</span><div class="bar-track"><div class="bar-fill gsm8k" style="width: 96.7%"></div></div><span class="bar-value">97</span></div>
+        <div class="bar-row"><span class="bar-name">ARC</span><div class="bar-track"><div class="bar-fill arc" style="width: 96.7%"></div></div><span class="bar-value">97</span></div>
+      </div>
+      <span class="tag v3">NEAR CEILING</span>
     </div>
 
   </div>
