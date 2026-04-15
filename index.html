@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="refresh" content="0; url=scripts/animations/orchestrator.html">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adaptive Model Orchestrator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #0a0a12;
+    color: #f1f5f9;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+  }
+  .container { text-align: center; }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.3em;
+    color: #64748b;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+  h1 {
+    font-size: 32px;
+    margin-bottom: 12px;
+  }
+  p {
+    color: #94a3b8;
+    margin-bottom: 32px;
+  }
+  a {
+    color: #22d3ee;
+    text-decoration: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+  }
+  a:hover { text-decoration: underline; }
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid #1e293b;
+    border-top-color: #22d3ee;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 24px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="spinner"></div>
+    <div class="eyebrow">Adaptive Model Orchestrator</div>
+    <h1>Loading animation…</h1>
+    <p>Redirecting to interactive walkthrough</p>
+    <a href="scripts/animations/orchestrator.html">→ Click here if not redirected automatically</a>
+  </div>
+</body>
+</html>
