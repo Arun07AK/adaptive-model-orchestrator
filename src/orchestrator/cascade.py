@@ -16,17 +16,68 @@ Answer directly and concisely - do not explain unless required by the question f
 
 
 def _normalize_answer(text: str) -> str:
-    """Normalize answer for comparison: strip <think> tags, extract letter/number."""
+    """Normalize answer for comparison: strip <think> tags, extract final answer."""
     text = re.sub(r'<think>[\s\S]*?</think>', '', text).strip()
-    # Try to find a letter answer first
-    letter = re.search(r'\b([A-D])\b', text.upper())
-    if letter:
-        return letter.group(1)
-    # Try a number
-    num = re.search(r'-?\d+(?:\.\d+)?', text.replace(",", ""))
-    if num:
-        return num.group(0)
+
+    letter = _extract_letter_answer(text)
+    if letter is not None:
+        return letter
+
+    number = _extract_number_answer(text)
+    if number is not None:
+        return number
+
     return text.strip()[:50].lower()
+
+
+def _extract_letter_answer(text: str) -> str | None:
+    """Extract the final MCQ letter using the same policy as benchmark scoring."""
+    upper = text.upper()
+    stripped = upper.strip().rstrip(".").rstrip(")").strip()
+    if len(stripped) == 1 and stripped in "ABCD":
+        return stripped
+
+    for pattern in [
+        r'(?:CORRECT ANSWER|FINAL ANSWER|THE ANSWER)\s*(?:IS|:)\s*\*?\*?([A-D])',
+        r'ANSWER\s*(?:IS|:)\s*\*?\*?([A-D])',
+        r'\*\*([A-D])\*\*',
+        r'(?:CHOOSE|SELECT)\s*([A-D])\b',
+        r'(?:OPTION|CHOICE)\s*([A-D])\b',
+        r'^\s*\(?([A-D])[\.\)]',
+        r'^\s*([A-D])\s*$',
+    ]:
+        match = re.search(pattern, upper, re.MULTILINE)
+        if match:
+            return match.group(1)
+
+    matches = re.findall(r'\b([A-D])\b', upper)
+    return matches[-1] if matches else None
+
+
+def _extract_number_answer(text: str) -> str | None:
+    """Extract the final numeric answer, preferring explicit answer markers."""
+    clean = text.replace(",", "")
+
+    hash_match = re.findall(r'####\s*(-?\d+(?:\.\d+)?)', clean)
+    if hash_match:
+        return hash_match[-1]
+
+    answer_match = re.search(
+        r'(?:the answer is|answer is|answer:)\s*(-?\d+(?:\.\d+)?)',
+        clean,
+        re.IGNORECASE,
+    )
+    if answer_match:
+        return answer_match.group(1)
+
+    boxed = re.findall(r'\\boxed\{([^}]+)\}', clean)
+    if boxed:
+        nums = re.findall(r'-?\d+(?:\.\d+)?', boxed[-1])
+        if nums:
+            return nums[-1]
+
+    numbers = re.findall(r'-?\d+(?:\.\d+)?', clean)
+    return numbers[-1] if numbers else None
 
 
 class SelfConsistencyScorer:
