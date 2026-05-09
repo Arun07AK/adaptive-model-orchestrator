@@ -1,8 +1,14 @@
 import pytest
-from src.orchestrator.cascade import SelfConsistencyScorer, SelectiveReviewPipeline, CascadePipeline, _normalize_answer
+
+from src.orchestrator.cascade import (
+    CascadePipeline,
+    SelfConsistencyScorer,
+    SelectiveReviewPipeline,
+    _normalize_answer,
+)
 from src.orchestrator.executor import Executor
 from src.orchestrator.analyzer import TaskAnalyzer
-from src.types import ModelConfig, Domain, CostTier, OrchestratorResult
+from src.types import CostTier, Domain, ExecutionResult, ModelConfig
 from tests.conftest import MockBackend
 
 
@@ -62,3 +68,55 @@ async def test_selective_review_no_escalation():
     result = await pipeline.run("What is 2+2?")
     assert not result.escalated
     assert pipeline.review_count == 0
+
+
+@pytest.mark.asyncio
+async def test_cascade_skips_laborer_specialist_without_duplicate_attempts():
+    laborer = _make_model("laborer")
+    senior = _make_model("senior")
+    calls = []
+
+    async def generate(model, prompt, max_tokens=256, temperature=0.0):
+        calls.append((model.name, prompt))
+        if model.name == "senior":
+            return ExecutionResult(
+                text="C",
+                confidence=0.9,
+                model_used=model.name,
+                latency_ms=30,
+                token_count=1,
+            )
+
+        text = "A" if len(calls) == 1 else "B"
+        latency = 10 if len(calls) == 1 else 20
+        return ExecutionResult(
+            text=text,
+            confidence=0.5,
+            model_used=model.name,
+            latency_ms=latency,
+            token_count=1,
+        )
+
+    backend = MockBackend()
+    backend.generate = generate
+    executor = Executor(backends={"mock": backend})
+    pipeline = CascadePipeline(
+        executor=executor,
+        laborer=laborer,
+        specialist_selector=lambda d: laborer,
+        senior_reviewer=senior,
+        analyzer=TaskAnalyzer(),
+    )
+
+    result = await pipeline.run("If all bloops are razzies, what follows?")
+
+    assert [name for name, _ in calls] == ["laborer", "laborer", "senior"]
+    assert pipeline.specialist_count == 0
+    assert pipeline.senior_count == 1
+    assert result.model_used == "laborer -> senior"
+    assert result.total_latency_ms == 60
+
+    review_prompt = calls[-1][1]
+    assert "Attempt 1 (laborer): A" in review_prompt
+    assert "Attempt 2 (laborer): B" in review_prompt
+    assert "Attempt 3" not in review_prompt
