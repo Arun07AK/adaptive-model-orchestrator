@@ -249,13 +249,13 @@ class CascadePipeline:
             )
 
         # Tier 2: Specialist
-        self.specialist_count += 1
         specialist = self._select_specialist(analysis.domain)
         if specialist.name == self._laborer.name:
-            # Skip if specialist == laborer
-            spec_attempts = lab_attempts
-            spec_consistent = lab_consistent
+            # Skip the tier entirely when no distinct specialist is available.
+            spec_attempts: list[ExecutionResult] = []
+            spec_consistent = False
         else:
+            self.specialist_count += 1
             spec_attempts, spec_consistent = await self._scorer.score(
                 specialist, prompt, max_tokens,
             )
@@ -282,9 +282,14 @@ class CascadePipeline:
             model=self._senior, prompt=review_prompt, max_tokens=max_tokens,
         )
         total_latency = sum(a.latency_ms for a in all_attempts) + review.latency_ms
+        model_used = (
+            f"{self._laborer.name} -> {self._senior.name}"
+            if not spec_attempts
+            else f"{self._laborer.name} -> {specialist.name} -> {self._senior.name}"
+        )
         return OrchestratorResult(
             text=review.text,
-            model_used=f"{self._laborer.name} -> {specialist.name} -> {self._senior.name}",
+            model_used=model_used,
             escalated=True,
             escalation_model=self._senior.name,
             total_latency_ms=total_latency,
