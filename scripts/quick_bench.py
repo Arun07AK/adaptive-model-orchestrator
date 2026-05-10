@@ -21,7 +21,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from datasets import load_dataset
+try:
+    from datasets import load_dataset
+except ImportError:
+    def load_dataset(*args, **kwargs):
+        raise ImportError("datasets not installed")
+
 from src.models.local import MLXBackend
 from src.models.api import LiteLLMBackend
 from src.models.registry import ModelRegistry
@@ -34,6 +39,28 @@ from src.orchestrator.pipeline import OrchestratorPipeline
 from src.orchestrator.moa import MixtureOfAgents
 from src.orchestrator.cascade import SelectiveReviewPipeline, CascadePipeline, CrossModelPipeline
 from src.types import Domain, RoutingDecision, TaskAnalysis
+
+
+BENCHMARK_CONFIGS: tuple[str, ...] = (
+    "single",
+    "qwen235b_standalone",
+    "orchestrated",
+    "moa",
+    "hybrid",
+    "selective_review",
+    "cascade",
+    "v3_cross_model",
+)
+
+ALL_CONFIGS: tuple[str, ...] = BENCHMARK_CONFIGS
+
+
+def expand_configs(config: str) -> list[str]:
+    if config == "all":
+        return list(ALL_CONFIGS)
+    if config not in BENCHMARK_CONFIGS:
+        raise ValueError(f"Unknown config: {config}")
+    return [config]
 
 
 # --- Pipeline builders ---
@@ -527,11 +554,10 @@ async def run_all_benchmarks(config: str) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(description="Quick benchmark runner")
-    parser.add_argument("--config", choices=["single", "qwen235b_standalone", "orchestrated", "moa", "hybrid", "selective_review", "cascade", "v3_cross_model", "all"],
-                        required=True)
+    parser.add_argument("--config", choices=[*BENCHMARK_CONFIGS, "all"], required=True)
     args = parser.parse_args()
 
-    configs = ["single", "selective_review", "cascade"] if args.config == "all" else [args.config]
+    configs = expand_configs(args.config)
 
     all_results = {}
     for config in configs:
