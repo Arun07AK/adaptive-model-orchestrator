@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import asyncio
 import re
 from src.orchestrator.executor import Executor
 from src.types import ExecutionResult, ModelConfig, OrchestratorResult
+
+_THINK_RE = re.compile(r"<think>[\s\S]*?</think>")
 
 _AGGREGATOR_SYSTEM_PROMPT = (
     "You have been provided with a set of responses from various open-source models "
@@ -47,9 +48,6 @@ class MixtureOfAgents:
         # Build aggregator prompt
         agg_prompt = self._build_aggregator_prompt(prompt, proposals)
 
-        # Layer 2: Aggregator synthesizes
-        import time
-        start = time.perf_counter()
         agg_result = await self._executor.execute(
             model=self._aggregator,
             prompt=agg_prompt,
@@ -73,7 +71,7 @@ class MixtureOfAgents:
         self, original_prompt: str, proposals: list[ExecutionResult]
     ) -> str:
         refs = "\n\n".join(
-            f"{i+1}. {re.sub(r'<think>[\\s\\S]*?</think>', '', p.text).strip()}"
+            f"{i+1}. {_strip_thinking(p.text)}"
             for i, p in enumerate(proposals)
         )
         return (
@@ -82,3 +80,7 @@ class MixtureOfAgents:
             f"Original question: {original_prompt}\n\n"
             f"Your synthesized response:"
         )
+
+
+def _strip_thinking(text: str) -> str:
+    return _THINK_RE.sub("", text).strip()

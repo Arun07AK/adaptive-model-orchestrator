@@ -16,17 +16,98 @@ Answer directly and concisely - do not explain unless required by the question f
 
 
 def _normalize_answer(text: str) -> str:
-    """Normalize answer for comparison: strip <think> tags, extract letter/number."""
+    """Normalize answer for comparison: strip <think> tags, extract final answer."""
     text = re.sub(r'<think>[\s\S]*?</think>', '', text).strip()
-    # Try to find a letter answer first
-    letter = re.search(r'\b([A-D])\b', text.upper())
-    if letter:
-        return letter.group(1)
-    # Try a number
-    num = re.search(r'-?\d+(?:\.\d+)?', text.replace(",", ""))
-    if num:
-        return num.group(0)
+
+    explicit_letter = _extract_explicit_letter_answer(text)
+    if explicit_letter is not None:
+        return explicit_letter
+
+    explicit_number = _extract_explicit_number_answer(text)
+    if explicit_number is not None:
+        return explicit_number
+
+    terminal_letter = _extract_terminal_letter_answer(text)
+    if terminal_letter is not None:
+        return terminal_letter
+
+    fallback_number = _extract_fallback_number_answer(text)
+    fallback_letter = _extract_fallback_letter_answer(text)
+
+    if fallback_number is not None and fallback_letter is not None:
+        # Avoid treating the article "A" in numeric answers like "A total of 12"
+        # as an MCQ answer, while preserving common elimination-style MCQ prose.
+        return fallback_letter if len(_standalone_letters(text)) > 1 else fallback_number
+    if fallback_number is not None:
+        return fallback_number
+    if fallback_letter is not None:
+        return fallback_letter
+
     return text.strip()[:50].lower()
+
+
+def _extract_explicit_letter_answer(text: str) -> str | None:
+    upper = text.upper()
+    stripped = upper.strip().rstrip(".").rstrip(")").strip()
+    if len(stripped) == 1 and stripped in "ABCD":
+        return stripped
+
+    for pattern in [
+        r'(?:CORRECT ANSWER|FINAL ANSWER|THE ANSWER)\s*(?:IS|:)\s*\*?\*?([A-D])',
+        r'ANSWER\s*(?:IS|:)\s*\*?\*?([A-D])',
+        r'\*\*([A-D])\*\*',
+        r'(?:CHOOSE|SELECT)\s+([A-D])\b',
+        r'(?:OPTION|CHOICE)\s*([A-D])\b',
+        r'^\s*\(?([A-D])[\.\)]',
+        r'^\s*([A-D])\s*$',
+    ]:
+        match = re.search(pattern, upper, re.MULTILINE)
+        if match:
+            return match.group(1)
+    return None
+
+
+def _extract_terminal_letter_answer(text: str) -> str | None:
+    match = re.search(r'\b([A-D])\b\s*[\.\)]?\s*$', text.upper())
+    return match.group(1) if match else None
+
+
+def _extract_explicit_number_answer(text: str) -> str | None:
+    clean = text.replace(",", "")
+
+    hash_match = re.findall(r'####\s*(-?\d+(?:\.\d+)?)', clean)
+    if hash_match:
+        return hash_match[-1]
+
+    answer_match = re.search(
+        r'(?:the answer is|answer is|answer:|final answer is|final answer:)\s*(-?\d+(?:\.\d+)?)',
+        clean,
+        re.IGNORECASE,
+    )
+    if answer_match:
+        return answer_match.group(1)
+
+    boxed = re.findall(r'\\boxed\{([^}]+)\}', clean)
+    if boxed:
+        nums = re.findall(r'-?\d+(?:\.\d+)?', boxed[-1])
+        if nums:
+            return nums[-1]
+
+    return None
+
+
+def _extract_fallback_number_answer(text: str) -> str | None:
+    nums = re.findall(r'-?\d+(?:\.\d+)?', text.replace(",", ""))
+    return nums[-1] if nums else None
+
+
+def _extract_fallback_letter_answer(text: str) -> str | None:
+    letters = _standalone_letters(text)
+    return letters[-1] if letters else None
+
+
+def _standalone_letters(text: str) -> list[str]:
+    return re.findall(r'\b([A-D])\b', text.upper())
 
 
 class SelfConsistencyScorer:
