@@ -1,6 +1,5 @@
 import pytest
 from src.orchestrator.cascade import (
-    CascadePipeline,
     CrossModelConsistencyScorer,
     SelectiveReviewPipeline,
     SelfConsistencyScorer,
