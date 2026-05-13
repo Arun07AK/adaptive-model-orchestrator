@@ -1,8 +1,13 @@
 import pytest
-from src.orchestrator.cascade import SelfConsistencyScorer, SelectiveReviewPipeline, CascadePipeline, _normalize_answer
+from src.orchestrator.cascade import (
+    CrossModelConsistencyScorer,
+    SelfConsistencyScorer,
+    SelectiveReviewPipeline,
+    _normalize_answer,
+)
 from src.orchestrator.executor import Executor
 from src.orchestrator.analyzer import TaskAnalyzer
-from src.types import ModelConfig, Domain, CostTier, OrchestratorResult
+from src.types import ModelConfig, Domain, CostTier
 from tests.conftest import MockBackend
 
 
@@ -16,11 +21,13 @@ def _make_model(name, domain=Domain.GENERAL, size=7.0):
 def test_normalize_answer_letter():
     assert _normalize_answer("The answer is B.") == "B"
     assert _normalize_answer("<think>reasoning</think>A") == "A"
+    assert _normalize_answer("A is tempting, but final answer: C") == "C"
 
 
 def test_normalize_answer_number():
     assert _normalize_answer("The answer is 42") == "42"
     assert _normalize_answer("#### 72") == "72"
+    assert _normalize_answer("Start with 3. Add 2. Final answer: 5") == "5"
 
 
 @pytest.mark.asyncio
@@ -37,16 +44,57 @@ async def test_self_consistency_agreement():
 async def test_self_consistency_disagreement():
     backend = MockBackend()
     call = [0]
+
     async def varied(model, prompt, max_tokens=256, temperature=0.0):
         from src.types import ExecutionResult
+
         call[0] += 1
         text = "A" if call[0] == 1 else "B"
-        return ExecutionResult(text=text, confidence=0.5, model_used=model.name, latency_ms=10, token_count=1)
+        return ExecutionResult(
+            text=text,
+            confidence=0.5,
+            model_used=model.name,
+            latency_ms=10,
+            token_count=1,
+        )
+
     backend.generate = varied
     executor = Executor(backends={"mock": backend})
     scorer = SelfConsistencyScorer(executor)
     attempts, consistent = await scorer.score(_make_model("m1"), "q?", max_tokens=10)
     assert consistent is False
+
+
+@pytest.mark.asyncio
+async def test_cross_model_consistency_uses_final_number_not_first_intermediate():
+    backend = MockBackend()
+    call = [0]
+
+    async def varied(model, prompt, max_tokens=256, temperature=0.0):
+        from src.types import ExecutionResult
+
+        call[0] += 1
+        text = (
+            "Start with 3 apples. Final answer: 5"
+            if call[0] == 1
+            else "Start with 3 apples. Final answer: 6"
+        )
+        return ExecutionResult(
+            text=text,
+            confidence=0.5,
+            model_used=model.name,
+            latency_ms=10,
+            token_count=7,
+        )
+
+    backend.generate = varied
+    executor = Executor(backends={"mock": backend})
+    scorer = CrossModelConsistencyScorer(executor)
+    attempts, consistent = await scorer.score(
+        _make_model("llama"), _make_model("qwen"), "q?", max_tokens=10,
+    )
+    assert consistent is False
+    assert [_normalize_answer(a.text) for a in attempts] == ["5", "6"]
 
 
 @pytest.mark.asyncio

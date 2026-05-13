@@ -16,16 +16,57 @@ Answer directly and concisely - do not explain unless required by the question f
 
 
 def _normalize_answer(text: str) -> str:
-    """Normalize answer for comparison: strip <think> tags, extract letter/number."""
+    """Normalize answer for comparison: strip <think> tags, extract final answer."""
     text = re.sub(r'<think>[\s\S]*?</think>', '', text).strip()
-    # Try to find a letter answer first
-    letter = re.search(r'\b([A-D])\b', text.upper())
-    if letter:
-        return letter.group(1)
-    # Try a number
-    num = re.search(r'-?\d+(?:\.\d+)?', text.replace(",", ""))
-    if num:
-        return num.group(0)
+
+    stripped = text.strip().rstrip(".").rstrip(")").strip()
+    if len(stripped) == 1 and stripped.upper() in "ABCD":
+        return stripped.upper()
+
+    upper_text = text.upper()
+
+    # Prefer explicit final-answer statements; earlier reasoning often mentions
+    # distractor choices or intermediate numbers that should not drive agreement.
+    for pattern in [
+        r'(?:CORRECT ANSWER|FINAL ANSWER|THE ANSWER)\s*(?:IS|:)\s*\*?\*?([A-D])',
+        r'ANSWER\s*(?:IS|:)\s*\*?\*?([A-D])',
+        r'\*\*([A-D])\*\*',
+        r'(?:OPTION|CHOICE)\s*([A-D])\b',
+        r'^\s*\(?([A-D])[\.\)]',
+        r'^\s*([A-D])\s*$',
+    ]:
+        letter = re.search(pattern, upper_text, re.MULTILINE)
+        if letter:
+            return letter.group(1)
+
+    clean = text.replace(",", "")
+    hash_match = re.findall(r'####\s*(-?\d+(?:\.\d+)?)', clean)
+    if hash_match:
+        return hash_match[-1]
+
+    boxed = re.findall(r'\\boxed\{([^}]+)\}', clean)
+    if boxed:
+        nums = re.findall(r'-?\d+(?:\.\d+)?', boxed[-1])
+        if nums:
+            return nums[-1]
+
+    answer_num = re.search(
+        r'(?:CORRECT ANSWER|FINAL ANSWER|THE ANSWER|ANSWER)\s*'
+        r'(?:IS|:)\s*(-?\d+(?:\.\d+)?)',
+        clean,
+        re.IGNORECASE,
+    )
+    if answer_num:
+        return answer_num.group(1)
+
+    letters = re.findall(r'\b([A-D])\b', upper_text)
+    if letters:
+        return letters[-1]
+
+    nums = re.findall(r'-?\d+(?:\.\d+)?', clean)
+    if nums:
+        return nums[-1]
+
     return text.strip()[:50].lower()
 
 
