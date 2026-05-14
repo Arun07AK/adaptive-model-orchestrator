@@ -1,8 +1,13 @@
 import pytest
-from src.orchestrator.cascade import SelfConsistencyScorer, SelectiveReviewPipeline, CascadePipeline, _normalize_answer
+from src.orchestrator.cascade import (
+    CrossModelConsistencyScorer,
+    SelfConsistencyScorer,
+    SelectiveReviewPipeline,
+    _normalize_answer,
+)
 from src.orchestrator.executor import Executor
 from src.orchestrator.analyzer import TaskAnalyzer
-from src.types import ModelConfig, Domain, CostTier, OrchestratorResult
+from src.types import ModelConfig, Domain, CostTier
 from tests.conftest import MockBackend
 
 
@@ -16,11 +21,16 @@ def _make_model(name, domain=Domain.GENERAL, size=7.0):
 def test_normalize_answer_letter():
     assert _normalize_answer("The answer is B.") == "B"
     assert _normalize_answer("<think>reasoning</think>A") == "A"
+    assert _normalize_answer("A is tempting, but the final answer is C.") == "C"
+    assert _normalize_answer("A) eliminate this option.\nTherefore choose D.") == "D"
 
 
 def test_normalize_answer_number():
     assert _normalize_answer("The answer is 42") == "42"
     assert _normalize_answer("#### 72") == "72"
+    assert _normalize_answer("Start with 3. Add 2. Final answer: 5") == "5"
+    assert _normalize_answer("A total of 12 widgets remain.") == "12"
+    assert _normalize_answer("Trial 1 gives 5, corrected total is \\boxed{12}.") == "12"
 
 
 @pytest.mark.asyncio
@@ -37,15 +47,82 @@ async def test_self_consistency_agreement():
 async def test_self_consistency_disagreement():
     backend = MockBackend()
     call = [0]
+
     async def varied(model, prompt, max_tokens=256, temperature=0.0):
         from src.types import ExecutionResult
+
         call[0] += 1
         text = "A" if call[0] == 1 else "B"
-        return ExecutionResult(text=text, confidence=0.5, model_used=model.name, latency_ms=10, token_count=1)
+        return ExecutionResult(
+            text=text,
+            confidence=0.5,
+            model_used=model.name,
+            latency_ms=10,
+            token_count=1,
+        )
+
     backend.generate = varied
     executor = Executor(backends={"mock": backend})
     scorer = SelfConsistencyScorer(executor)
     attempts, consistent = await scorer.score(_make_model("m1"), "q?", max_tokens=10)
+    assert consistent is False
+
+
+@pytest.mark.asyncio
+async def test_self_consistency_uses_final_numeric_answer():
+    backend = MockBackend()
+    call = [0]
+
+    async def varied(model, prompt, max_tokens=256, temperature=0.0):
+        from src.types import ExecutionResult
+
+        call[0] += 1
+        final = "72" if call[0] == 1 else "71"
+        text = f"A total is computed from the same setup.\n#### {final}"
+        return ExecutionResult(
+            text=text,
+            confidence=0.5,
+            model_used=model.name,
+            latency_ms=10,
+            token_count=8,
+        )
+
+    backend.generate = varied
+    executor = Executor(backends={"mock": backend})
+    scorer = SelfConsistencyScorer(executor)
+    attempts, consistent = await scorer.score(_make_model("m1"), "q?", max_tokens=10)
+
+    assert [_normalize_answer(a.text) for a in attempts] == ["72", "71"]
+    assert consistent is False
+
+
+@pytest.mark.asyncio
+async def test_cross_model_consistency_uses_final_mcq_answer():
+    backend = MockBackend()
+
+    async def by_model(model, prompt, max_tokens=256, temperature=0.0):
+        from src.types import ExecutionResult
+
+        text = (
+            "A is an attractive distractor. Final answer: B"
+            if model.name == "model-a"
+            else "A is an attractive distractor. Final answer: C"
+        )
+        return ExecutionResult(
+            text=text,
+            confidence=0.5,
+            model_used=model.name,
+            latency_ms=10,
+            token_count=8,
+        )
+
+    backend.generate = by_model
+    executor = Executor(backends={"mock": backend})
+    scorer = CrossModelConsistencyScorer(executor)
+    _, consistent = await scorer.score(
+        _make_model("model-a"), _make_model("model-b"), "q?", max_tokens=10,
+    )
+
     assert consistent is False
 
 
