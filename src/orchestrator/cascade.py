@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+from decimal import Decimal, InvalidOperation
+
 from src.orchestrator.executor import Executor
 from src.types import ExecutionResult, ModelConfig, OrchestratorResult
 
@@ -16,17 +18,56 @@ Answer directly and concisely - do not explain unless required by the question f
 
 
 def _normalize_answer(text: str) -> str:
-    """Normalize answer for comparison: strip <think> tags, extract letter/number."""
+    """Normalize final answers for consistency checks."""
     text = re.sub(r'<think>[\s\S]*?</think>', '', text).strip()
-    # Try to find a letter answer first
-    letter = re.search(r'\b([A-D])\b', text.upper())
-    if letter:
-        return letter.group(1)
-    # Try a number
-    num = re.search(r'-?\d+(?:\.\d+)?', text.replace(",", ""))
-    if num:
-        return num.group(0)
+    upper = text.upper()
+
+    stripped = upper.strip().strip("().").strip()
+    if len(stripped) == 1 and stripped in "ABCD":
+        return stripped
+
+    for pattern in [
+        r'(?:CORRECT ANSWER|FINAL ANSWER|THE ANSWER)\s*(?:IS|:)\s*\*?\*?([A-D])',
+        r'ANSWER\s*(?:IS|:)\s*\*?\*?([A-D])',
+        r'\*\*([A-D])\*\*',
+        r'(?:OPTION|CHOICE)\s*([A-D])\b',
+        r'\b(?:CHOOSE|SELECT|PICK|GO WITH)\s*(?:OPTION|CHOICE)?\s*([A-D])\b',
+        r'^\s*([A-D])\s*$',
+    ]:
+        match = re.search(pattern, upper, re.MULTILINE)
+        if match:
+            return match.group(1)
+
+    for pattern in [
+        r'####\s*(-?\d+(?:,\d{3})*(?:\.\d+)?)',
+        r'(?:FINAL ANSWER|THE ANSWER|ANSWER)\s*(?:IS|:)\s*(-?\d+(?:,\d{3})*(?:\.\d+)?)',
+        r'\\boxed\{([^}]+)\}',
+    ]:
+        matches = re.findall(pattern, text, re.IGNORECASE)
+        if matches:
+            numbers = re.findall(r'-?\d+(?:,\d{3})*(?:\.\d+)?', matches[-1])
+            if numbers:
+                return _normalize_number(numbers[-1])
+
+    numbers = re.findall(r'-?\d+(?:,\d{3})*(?:\.\d+)?', text)
+    if numbers:
+        return _normalize_number(numbers[-1])
+
+    letters = re.findall(r'\b([A-D])\b', upper)
+    if letters:
+        return letters[-1]
+
     return text.strip()[:50].lower()
+
+
+def _normalize_number(number: str) -> str:
+    """Canonicalize equivalent decimal strings like 72 and 72.0."""
+    compact = number.replace(",", "")
+    try:
+        decimal = Decimal(compact)
+    except InvalidOperation:
+        return compact
+    return format(decimal.normalize(), "f")
 
 
 class SelfConsistencyScorer:

@@ -1,8 +1,13 @@
 import pytest
-from src.orchestrator.cascade import SelfConsistencyScorer, SelectiveReviewPipeline, CascadePipeline, _normalize_answer
+from src.orchestrator.cascade import (
+    CrossModelPipeline,
+    SelfConsistencyScorer,
+    SelectiveReviewPipeline,
+    _normalize_answer,
+)
 from src.orchestrator.executor import Executor
 from src.orchestrator.analyzer import TaskAnalyzer
-from src.types import ModelConfig, Domain, CostTier, OrchestratorResult
+from src.types import ModelConfig, Domain, CostTier
 from tests.conftest import MockBackend
 
 
@@ -21,6 +26,12 @@ def test_normalize_answer_letter():
 def test_normalize_answer_number():
     assert _normalize_answer("The answer is 42") == "42"
     assert _normalize_answer("#### 72") == "72"
+    assert _normalize_answer("First use 3 groups. #### 72") == "72"
+    assert _normalize_answer("The answer is 72.0") == "72"
+
+
+def test_normalize_answer_prefers_final_letter():
+    assert _normalize_answer("A is tempting, and B is plausible. Final answer: C") == "C"
 
 
 @pytest.mark.asyncio
@@ -62,3 +73,37 @@ async def test_selective_review_no_escalation():
     result = await pipeline.run("What is 2+2?")
     assert not result.escalated
     assert pipeline.review_count == 0
+
+
+@pytest.mark.asyncio
+async def test_cross_model_escalates_when_final_numbers_disagree():
+    backend = MockBackend()
+    backend.set_response(
+        "model-a",
+        "math?",
+        "We use 3 groups in the setup. Final answer: 12",
+        0.9,
+    )
+    backend.set_response(
+        "model-b",
+        "math?",
+        "We use 3 groups in the setup. Final answer: 15",
+        0.9,
+    )
+    backend.set_response("senior", "Previous attempts", "Final answer: 15", 0.9)
+
+    executor = Executor(backends={"mock": backend})
+    pipeline = CrossModelPipeline(
+        executor=executor,
+        model_a=_make_model("model-a"),
+        model_b=_make_model("model-b"),
+        senior_reviewer=_make_model("senior"),
+        analyzer=TaskAnalyzer(),
+    )
+
+    result = await pipeline.run("math?", max_tokens=10)
+
+    assert result.escalated
+    assert result.escalation_model == "senior"
+    assert result.text == "Final answer: 15"
+    assert pipeline.review_count == 1
