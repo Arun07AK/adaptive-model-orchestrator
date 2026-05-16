@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import re
 from src.orchestrator.executor import Executor
+from src.orchestrator.answer_extraction import normalize_answer_for_consistency
 from src.types import ExecutionResult, ModelConfig, OrchestratorResult
 
 _REVIEW_PROMPT = """You are reviewing answers from other models for this question:
@@ -17,16 +17,7 @@ Answer directly and concisely - do not explain unless required by the question f
 
 def _normalize_answer(text: str) -> str:
     """Normalize answer for comparison: strip <think> tags, extract letter/number."""
-    text = re.sub(r'<think>[\s\S]*?</think>', '', text).strip()
-    # Try to find a letter answer first
-    letter = re.search(r'\b([A-D])\b', text.upper())
-    if letter:
-        return letter.group(1)
-    # Try a number
-    num = re.search(r'-?\d+(?:\.\d+)?', text.replace(",", ""))
-    if num:
-        return num.group(0)
-    return text.strip()[:50].lower()
+    return normalize_answer_for_consistency(text)
 
 
 class SelfConsistencyScorer:

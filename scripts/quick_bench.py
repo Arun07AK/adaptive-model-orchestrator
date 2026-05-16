@@ -14,7 +14,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import re
 import sys
 import time
 from pathlib import Path
@@ -33,6 +32,7 @@ from src.orchestrator.aggregator import Aggregator
 from src.orchestrator.pipeline import OrchestratorPipeline
 from src.orchestrator.moa import MixtureOfAgents
 from src.orchestrator.cascade import SelectiveReviewPipeline, CascadePipeline, CrossModelPipeline
+from src.orchestrator.answer_extraction import extract_choice_answer, extract_numeric_answer
 from src.types import Domain, RoutingDecision, TaskAnalysis
 
 
@@ -246,34 +246,7 @@ def format_mmlu_prompt(item: dict) -> str:
 
 
 def extract_answer(text: str) -> str | None:
-    # Strip <think>...</think> blocks from CoT models (Qwen3)
-    text = re.sub(r'<think>[\s\S]*?</think>', '', text).strip()
-
-    # If the entire response is just a single letter, return it
-    stripped = text.strip().rstrip(".").rstrip(")").strip()
-    if len(stripped) == 1 and stripped.upper() in "ABCD":
-        return stripped.upper()
-
-    text = text.upper()
-
-    # Most reliable: explicit answer statements
-    for pattern in [
-        r'(?:CORRECT ANSWER|FINAL ANSWER|THE ANSWER)\s*(?:IS|:)\s*\*?\*?([A-D])',
-        r'ANSWER\s*(?:IS|:)\s*\*?\*?([A-D])',
-        r'\*\*([A-D])\*\*',                     # markdown bold: **B**
-        r'(?:OPTION|CHOICE)\s*([A-D])\b',
-        r'^\s*\(?([A-D])[\.\)]',                # starts with "B." or "(B)"
-        r'^\s*([A-D])\s*$',                     # just the letter on its own line
-    ]:
-        match = re.search(pattern, text, re.MULTILINE)
-        if match:
-            return match.group(1)
-
-    # Last resort: last standalone letter
-    last_match = re.findall(r'\b([A-D])\b', text)
-    if last_match:
-        return last_match[-1]
-    return None
+    return extract_choice_answer(text)
 
 
 async def run_mmlu(pipeline: OrchestratorPipeline | MixtureOfAgents, limit_per_subject: int = 5) -> dict:
@@ -330,36 +303,7 @@ def extract_number(text: str) -> str | None:
 
     Priority: #### format > </think> content > \\boxed{} > "answer is" > last number.
     """
-    # Strip <think> block to get clean answer
-    clean = re.sub(r'<think>[\s\S]*?</think>', '', text).strip()
-
-    # Look for #### number (standard GSM8K format)
-    hash_match = re.findall(r'####\s*(-?\d+(?:,\d{3})*(?:\.\d+)?)', clean.replace(",", ""))
-    if hash_match:
-        return hash_match[-1]
-
-    # Look for "the answer is X" pattern
-    answer_match = re.search(r'(?:the answer is|answer is|answer:)\s*(-?\d+(?:,\d{3})*(?:\.\d+)?)', clean, re.IGNORECASE)
-    if answer_match:
-        return answer_match.group(1).replace(",", "")
-
-    # Look for boxed answers: \boxed{72}
-    boxed = re.findall(r'\\boxed\{([^}]+)\}', clean)
-    if boxed:
-        nums = re.findall(r'-?\d+(?:\.\d+)?', boxed[-1].replace(",", ""))
-        if nums:
-            return nums[-1]
-
-    # If there's content after </think>, prefer numbers from there
-    if "</think>" in text:
-        after_think = text.split("</think>")[-1]
-        numbers = re.findall(r'-?\d+(?:,\d{3})*(?:\.\d+)?', after_think.replace(",", ""))
-        if numbers:
-            return numbers[-1]
-
-    # Fall back to last number in clean text
-    numbers = re.findall(r'-?\d+(?:,\d{3})*(?:\.\d+)?', clean.replace(",", ""))
-    return numbers[-1] if numbers else None
+    return extract_numeric_answer(text)
 
 
 async def run_gsm8k(pipeline: OrchestratorPipeline | MixtureOfAgents, limit: int = 30) -> dict:
@@ -511,7 +455,7 @@ async def run_all_benchmarks(config: str) -> dict:
     print(f"  Total time: {elapsed:.0f}s")
 
     if config == "cascade" and "runner" in dir():
-        print(f"\nTier usage:")
+        print("\nTier usage:")
         print(f"  Laborer: {runner.laborer_count}/{runner.total_count}")
         print(f"  Specialist: {runner.specialist_count}/{runner.total_count} ({100*runner.specialist_count/runner.total_count:.0f}%)")
         print(f"  Senior: {runner.senior_count}/{runner.total_count} ({100*runner.senior_count/runner.total_count:.0f}%)")
