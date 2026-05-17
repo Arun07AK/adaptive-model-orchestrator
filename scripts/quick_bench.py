@@ -455,7 +455,7 @@ async def run_all_benchmarks(config: str) -> dict:
     print(f"  Total time: {elapsed:.0f}s")
 
     if config == "cascade" and "runner" in dir():
-        print(f"\nTier usage:")
+        print("\nTier usage:")
         print(f"  Laborer: {runner.laborer_count}/{runner.total_count}")
         print(f"  Specialist: {runner.specialist_count}/{runner.total_count} ({100*runner.specialist_count/runner.total_count:.0f}%)")
         print(f"  Senior: {runner.senior_count}/{runner.total_count} ({100*runner.senior_count/runner.total_count:.0f}%)")
