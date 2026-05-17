@@ -58,6 +58,27 @@ async def test_moa_aggregator_sees_proposals(moa):
 
 
 @pytest.mark.asyncio
+async def test_moa_strips_think_blocks_from_aggregator_prompt():
+    backend = MockBackend()
+    backend.set_response("p1", "", "<think>private reasoning</think>Answer A", 0.8)
+    backend.set_response("p2", "", "Answer B", 0.7)
+    backend.set_response("agg", "", "Final synthesized answer", 0.9)
+    executor = Executor(backends={"mock": backend})
+    moa_inst = MixtureOfAgents(
+        executor=executor,
+        proposer_models=[_make_model("p1"), _make_model("p2")],
+        aggregator_model=_make_model("agg"),
+    )
+
+    await moa_inst.run("test question")
+
+    assert backend.last_prompt is not None
+    assert "<think>" not in backend.last_prompt
+    assert "private reasoning" not in backend.last_prompt
+    assert "Answer A" in backend.last_prompt
+
+
+@pytest.mark.asyncio
 async def test_moa_tracks_total_latency(moa):
     result = await moa.run("What is 2+2?")
     # 3 proposers + 1 aggregator = 4 calls, each 10ms
