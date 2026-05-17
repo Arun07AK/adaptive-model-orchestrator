@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import re
+from src.answer_extraction import normalize_answer as _normalize_answer
 from src.orchestrator.executor import Executor
 from src.types import ExecutionResult, ModelConfig, OrchestratorResult
 
@@ -15,18 +15,10 @@ The previous models gave different answers. Provide the CORRECT answer.
 Answer directly and concisely - do not explain unless required by the question format."""
 
 
-def _normalize_answer(text: str) -> str:
-    """Normalize answer for comparison: strip <think> tags, extract letter/number."""
-    text = re.sub(r'<think>[\s\S]*?</think>', '', text).strip()
-    # Try to find a letter answer first
-    letter = re.search(r'\b([A-D])\b', text.upper())
-    if letter:
-        return letter.group(1)
-    # Try a number
-    num = re.search(r'-?\d+(?:\.\d+)?', text.replace(",", ""))
-    if num:
-        return num.group(0)
-    return text.strip()[:50].lower()
+def _answers_match(left: str, right: str) -> bool:
+    left_answer = _normalize_answer(left)
+    right_answer = _normalize_answer(right)
+    return bool(left_answer) and left_answer == right_answer
 
 
 class SelfConsistencyScorer:
@@ -45,7 +37,7 @@ class SelfConsistencyScorer:
         r2 = await self._executor.execute(
             model=model, prompt=prompt, max_tokens=max_tokens, temperature=0.5,
         )
-        return [r1, r2], _normalize_answer(r1.text) == _normalize_answer(r2.text)
+        return [r1, r2], _answers_match(r1.text, r2.text)
 
 
 class CrossModelConsistencyScorer:
@@ -76,7 +68,7 @@ class CrossModelConsistencyScorer:
         r_b = await self._executor.execute(
             model=model_b, prompt=prompt, max_tokens=max_tokens, temperature=0.0,
         )
-        return [r_a, r_b], _normalize_answer(r_a.text) == _normalize_answer(r_b.text)
+        return [r_a, r_b], _answers_match(r_a.text, r_b.text)
 
 
 class CrossModelPipeline:
@@ -249,13 +241,13 @@ class CascadePipeline:
             )
 
         # Tier 2: Specialist
-        self.specialist_count += 1
         specialist = self._select_specialist(analysis.domain)
         if specialist.name == self._laborer.name:
             # Skip if specialist == laborer
-            spec_attempts = lab_attempts
-            spec_consistent = lab_consistent
+            spec_attempts = []
+            spec_consistent = False
         else:
+            self.specialist_count += 1
             spec_attempts, spec_consistent = await self._scorer.score(
                 specialist, prompt, max_tokens,
             )
@@ -282,9 +274,12 @@ class CascadePipeline:
             model=self._senior, prompt=review_prompt, max_tokens=max_tokens,
         )
         total_latency = sum(a.latency_ms for a in all_attempts) + review.latency_ms
+        model_path = f"{self._laborer.name} -> {self._senior.name}"
+        if spec_attempts:
+            model_path = f"{self._laborer.name} -> {specialist.name} -> {self._senior.name}"
         return OrchestratorResult(
             text=review.text,
-            model_used=f"{self._laborer.name} -> {specialist.name} -> {self._senior.name}",
+            model_used=model_path,
             escalated=True,
             escalation_model=self._senior.name,
             total_latency_ms=total_latency,

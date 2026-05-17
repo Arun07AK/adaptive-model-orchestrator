@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import asyncio
-import re
+from src.answer_extraction import strip_think_blocks
 from src.orchestrator.executor import Executor
 from src.types import ExecutionResult, ModelConfig, OrchestratorResult
 
@@ -48,8 +47,6 @@ class MixtureOfAgents:
         agg_prompt = self._build_aggregator_prompt(prompt, proposals)
 
         # Layer 2: Aggregator synthesizes
-        import time
-        start = time.perf_counter()
         agg_result = await self._executor.execute(
             model=self._aggregator,
             prompt=agg_prompt,
@@ -73,7 +70,7 @@ class MixtureOfAgents:
         self, original_prompt: str, proposals: list[ExecutionResult]
     ) -> str:
         refs = "\n\n".join(
-            f"{i+1}. {re.sub(r'<think>[\\s\\S]*?</think>', '', p.text).strip()}"
+            f"{i+1}. {strip_think_blocks(p.text)}"
             for i, p in enumerate(proposals)
         )
         return (
