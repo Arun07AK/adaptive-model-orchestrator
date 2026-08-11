@@ -1,3 +1,5 @@
+
+
 # Adaptive Model Orchestrator
 
 An exploration of cost-efficient LLM orchestration: **how closely can we approach the best-available-model's accuracy while calling it a fraction of the time?**
@@ -454,13 +456,15 @@ echo 'CEREBRAS_API_KEY=your_key' >> .env
 python scripts/setup_models.py
 
 # 4. Run any benchmark configuration
-python scripts/quick_bench.py --config single        # Baseline
-python scripts/quick_bench.py --config orchestrated  # V1 routing
-python scripts/quick_bench.py --config moa           # V1 MoA
-python scripts/quick_bench.py --config hybrid        # V1 Hybrid (best V1)
-python scripts/quick_bench.py --config selective_review  # V2 alternate
-python scripts/quick_bench.py --config cascade       # V2 main (3-tier)
-python scripts/quick_bench.py --config all           # Full comparison
+python scripts/quick_bench.py --config single              # 7B baseline
+python scripts/quick_bench.py --config qwen235b_standalone # 235B ceiling baseline
+python scripts/quick_bench.py --config orchestrated        # V1 routing
+python scripts/quick_bench.py --config moa                 # V1 MoA
+python scripts/quick_bench.py --config hybrid              # V1 Hybrid
+python scripts/quick_bench.py --config selective_review    # V2-A (Selective Review)
+python scripts/quick_bench.py --config cascade             # V2-B (3-tier)
+python scripts/quick_bench.py --config v3_cross_model      # V3 (Cross-Model)
+python scripts/quick_bench.py --config all                 # Runs single, V2-A, V2-B
 
 # 5. View results
 open src/dashboard/index.html
